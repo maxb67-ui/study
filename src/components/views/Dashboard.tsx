@@ -13,6 +13,8 @@ import { localDateISO, addDays, daysBetween } from '@/lib/dates';
 import { ProgressRing } from '@/components/ProgressRing';
 import { InsightCard } from '@/components/InsightCard';
 import { useToast } from '@/components/Toast';
+import { useGamification } from '@/lib/useGamification';
+import { GamificationCard } from '@/components/GamificationCard';
 
 const TYPE_ICONS: Record<Task['type'], typeof FileText> = {
   homework: ClipboardList,
@@ -55,10 +57,12 @@ function getGreeting(hour: number): { text: string; icon: typeof Sunrise } {
 }
 
 export function Dashboard(props: NavProps) {
-  const { tasks, blocks, logs, settings, startPomodoroForTask, onBlocksGenerated, loading, setView, onAddTask, onQuickFocus } = props;
+  const { tasks, blocks, logs, notes, settings, startPomodoroForTask, onBlocksGenerated, loading, setView, onAddTask, onQuickFocus } = props;
   const { profile } = useAuth();
   const toast = useToast();
   const [generating, setGenerating] = useState(false);
+
+  const { userLevel, streak: gamifiedStreak, unlockedAchievements, allAchievements, activeQuests } = useGamification(tasks, logs, notes, blocks, settings);
 
   const todayISO = useMemo(() => localDateISO(new Date()), []);
   const today = useMemo(() => new Date(), []);
@@ -271,6 +275,18 @@ export function Dashboard(props: NavProps) {
           <HeroStat icon={CheckCircle2} label="Done Today" value={`${todayCompleted}/${todayBlocks.length}`} />
           <HeroStat icon={TrendingUp} label="Week Total" value={`${Math.round(weekMinutes / 60 * 10) / 10}h`} />
         </div>
+      </div>
+
+      {/* Gamification Level & Daily Quests Banner */}
+      <div className="mb-6">
+        <GamificationCard
+          userLevel={userLevel}
+          streak={gamifiedStreak}
+          unlockedCount={unlockedAchievements.length}
+          totalAchievements={allAchievements.length}
+          activeQuests={activeQuests}
+          setView={setView}
+        />
       </div>
 
       {/* Quick Action Buttons */}

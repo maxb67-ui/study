@@ -13,6 +13,7 @@ import { PomodoroView } from '@/components/views/PomodoroView';
 import { InsightsView } from '@/components/views/InsightsView';
 import { NotesView } from '@/components/views/NotesView';
 import { TutorView } from '@/components/views/TutorView';
+import { AchievementsView } from '@/components/views/AchievementsView';
 import { AccountView } from '@/components/views/AccountView';
 import { AuthPage } from '@/components/views/AuthPage';
 import { OnboardingView } from '@/components/views/OnboardingView';
@@ -21,7 +22,7 @@ import { MobileHeader } from '@/components/MobileHeader';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { scanForReminders, getSavedNotifications, type AppNotification } from '@/lib/notifications';
 
-export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'tutor' | 'insights' | 'account';
+export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'tutor' | 'achievements' | 'insights' | 'account';
 
 const LOCAL_NOTES_KEY = 'lumora_local_notes_v1';
 
@@ -238,6 +239,7 @@ export function AppContent() {
           {view === 'pomodoro' && <PomodoroView {...navProps} />}
           {view === 'notes' && <NotesView {...navProps} />}
           {view === 'tutor' && <TutorView {...navProps} />}
+          {view === 'achievements' && <AchievementsView {...navProps} />}
           {view === 'insights' && <InsightsView {...navProps} />}
           {view === 'account' && <AccountView />}
         </div>

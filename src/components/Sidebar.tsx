@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, BookMarked, Bot, Moon, Sun, GraduationCap, UserCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, BookMarked, Bot, Trophy, Moon, Sun, GraduationCap, UserCircle, LogOut } from 'lucide-react';
 import type { View } from '@/App';
 import type { Settings } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -21,6 +21,7 @@ const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
   { id: 'notes', label: 'Notes & AI', icon: BookMarked },
   { id: 'tutor', label: 'AI Tutor', icon: Bot },
+  { id: 'achievements', label: 'Badges & Level', icon: Trophy },
   { id: 'insights', label: 'Insights', icon: Lightbulb },
 ];
 
