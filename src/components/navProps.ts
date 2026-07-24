@@ -1,5 +1,5 @@
 import type { View } from '@/App';
-import type { Task, StudyBlock, StudyLog, Settings } from '@/lib/supabase';
+import type { Task, StudyBlock, StudyLog, Settings, Note, NoteInput } from '@/lib/supabase';
 
 export type NavProps = {
   view: View;
@@ -7,6 +7,7 @@ export type NavProps = {
   tasks: Task[];
   blocks: StudyBlock[];
   logs: StudyLog[];
+  notes: Note[];
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
   pomodoroTaskId: string | null;
@@ -18,5 +19,8 @@ export type NavProps = {
   onLogAdded: () => void;
   reloadTasks: () => void;
   reloadBlocks: () => void;
+  reloadNotes: () => void;
+  onSaveNote: (n: NoteInput, id?: string) => Promise<void>;
+  onDeleteNote: (id: string) => Promise<void>;
   loading: boolean;
 };

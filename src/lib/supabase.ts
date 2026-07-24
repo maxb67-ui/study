@@ -35,6 +35,17 @@ export type Task = {
   created_at: string;
 };
 
+export type Note = {
+  id: string;
+  user_id: string;
+  title: string;
+  subject: string;
+  content: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+};
+
 export type StudyBlock = {
   id: string;
   user_id: string;
@@ -86,3 +97,5 @@ export type Profile = {
 export type TaskInput = Omit<Task, 'id' | 'user_id' | 'created_at' | 'completed'> & {
   completed?: boolean;
 };
+
+export type NoteInput = Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>;

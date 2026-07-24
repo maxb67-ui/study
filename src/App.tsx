@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase, isSupabaseConfigured, type Task, type StudyBlock, type StudyLog } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, type Task, type StudyBlock, type StudyLog, type Note, type NoteInput } from '@/lib/supabase';
 import { useSettings } from '@/lib/useSettings';
 import { useDarkMode } from '@/lib/useDarkMode';
 import { useAuth } from '@/lib/auth';
@@ -11,6 +11,7 @@ import { TasksView } from '@/components/views/TasksView';
 import { CalendarView } from '@/components/views/CalendarView';
 import { PomodoroView } from '@/components/views/PomodoroView';
 import { InsightsView } from '@/components/views/InsightsView';
+import { NotesView } from '@/components/views/NotesView';
 import { AccountView } from '@/components/views/AccountView';
 import { AuthPage } from '@/components/views/AuthPage';
 import { OnboardingView } from '@/components/views/OnboardingView';
@@ -19,9 +20,11 @@ import { MobileHeader } from '@/components/MobileHeader';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { scanForReminders, getSavedNotifications, type AppNotification } from '@/lib/notifications';
 
-export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'insights' | 'account';
+export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'insights' | 'account';
 
-function AppContent() {
+const LOCAL_NOTES_KEY = 'lumora_local_notes_v1';
+
+export function AppContent() {
   const { session, profile, loading: authLoading } = useAuth();
   const { settings, update } = useSettings();
   useDarkMode(settings.dark_mode);
@@ -32,6 +35,7 @@ function AppContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [blocks, setBlocks] = useState<StudyBlock[]>([]);
   const [logs, setLogs] = useState<StudyLog[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>(getSavedNotifications());
   const [loading, setLoading] = useState(true);
 
@@ -39,55 +43,111 @@ function AppContent() {
     if (!isSupabaseConfigured) return;
     try {
       const { data, error } = await supabase.from('tasks').select('*').order('due_date', { ascending: true });
-      if (error) {
-        toast('error', 'Failed to load tasks');
-        return;
-      }
-      if (data) setTasks(data as Task[]);
+      if (!error && data) setTasks(data as Task[]);
     } catch {}
-  }, [toast]);
+  }, []);
 
   const loadBlocks = useCallback(async () => {
     if (!isSupabaseConfigured) return;
     try {
       const { data, error } = await supabase.from('study_blocks').select('*').order('scheduled_date', { ascending: true });
-      if (error) {
-        toast('error', 'Failed to load schedule');
-        return;
-      }
-      if (data) setBlocks(data as StudyBlock[]);
+      if (!error && data) setBlocks(data as StudyBlock[]);
     } catch {}
-  }, [toast]);
+  }, []);
 
   const loadLogs = useCallback(async () => {
     if (!isSupabaseConfigured) return;
     try {
       const { data, error } = await supabase.from('study_logs').select('*').order('date', { ascending: true });
-      if (error) {
-        toast('error', 'Failed to load study history');
-        return;
-      }
-      if (data) setLogs(data as StudyLog[]);
+      if (!error && data) setLogs(data as StudyLog[]);
     } catch {}
-  }, [toast]);
+  }, []);
+
+  const loadNotes = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      try {
+        const saved = localStorage.getItem(LOCAL_NOTES_KEY);
+        if (saved) setNotes(JSON.parse(saved));
+      } catch {}
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from('notes').select('*').order('updated_at', { ascending: false });
+      if (!error && data) setNotes(data as Note[]);
+      else {
+        // Fallback to local storage if table is missing or network down
+        const saved = localStorage.getItem(LOCAL_NOTES_KEY);
+        if (saved) setNotes(JSON.parse(saved));
+      }
+    } catch {
+      const saved = localStorage.getItem(LOCAL_NOTES_KEY);
+      if (saved) setNotes(JSON.parse(saved));
+    }
+  }, []);
+
+  const handleSaveNote = useCallback(async (input: NoteInput, id?: string) => {
+    const now = new Date().toISOString();
+    let updatedNotes: Note[] = [];
+
+    if (id) {
+      updatedNotes = notes.map((n) => (n.id === id ? { ...n, ...input, updated_at: now } : n));
+    } else {
+      const newNote: Note = {
+        id: `note-${Date.now()}`,
+        user_id: session?.user?.id || 'demo',
+        ...input,
+        created_at: now,
+        updated_at: now,
+      };
+      updatedNotes = [newNote, ...notes];
+    }
+
+    setNotes(updatedNotes);
+    localStorage.setItem(LOCAL_NOTES_KEY, JSON.stringify(updatedNotes));
+
+    if (isSupabaseConfigured && session?.user) {
+      try {
+        if (id) {
+          await supabase.from('notes').update({ ...input, updated_at: now }).eq('id', id);
+        } else {
+          await supabase.from('notes').insert({ ...input, user_id: session.user.id });
+        }
+      } catch {}
+    }
+    toast('success', id ? 'Note updated' : 'Note created');
+  }, [notes, session, toast]);
+
+  const handleDeleteNote = useCallback(async (id: string) => {
+    const updated = notes.filter((n) => n.id !== id);
+    setNotes(updated);
+    localStorage.setItem(LOCAL_NOTES_KEY, JSON.stringify(updated));
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('notes').delete().eq('id', id);
+      } catch {}
+    }
+    toast('success', 'Note deleted');
+  }, [notes, toast]);
 
   useEffect(() => {
     if (!session?.user) {
       setTasks([]);
       setBlocks([]);
       setLogs([]);
+      setNotes([]);
       setLoading(false);
       return;
     }
     let active = true;
     (async () => {
-      await Promise.all([loadTasks(), loadBlocks(), loadLogs()]);
+      await Promise.all([loadTasks(), loadBlocks(), loadLogs(), loadNotes()]);
       if (active) setLoading(false);
     })();
     return () => { active = false; };
-  }, [session, loadTasks, loadBlocks, loadLogs]);
+  }, [session, loadTasks, loadBlocks, loadLogs, loadNotes]);
 
-  // Periodically scan for reminders (upcoming exams, tasks due, study blocks)
+  // Periodically scan for reminders
   useEffect(() => {
     if (loading || !session?.user) return;
     const runScan = () => {
@@ -95,7 +155,7 @@ function AppContent() {
       setNotifications(updated);
     };
     runScan();
-    const interval = setInterval(runScan, 60000); // scan every 60 seconds
+    const interval = setInterval(runScan, 60000);
     return () => clearInterval(interval);
   }, [loading, session, tasks, blocks, settings, toast]);
 
@@ -134,6 +194,8 @@ function AppContent() {
     setView,
     tasks,
     blocks,
+    logs,
+    notes,
     settings,
     updateSettings: update,
     pomodoroTaskId: pomodoro.pomodoroTaskId,
@@ -145,7 +207,9 @@ function AppContent() {
     onLogAdded: loadLogs,
     reloadTasks: loadTasks,
     reloadBlocks: loadBlocks,
-    logs,
+    reloadNotes: loadNotes,
+    onSaveNote: handleSaveNote,
+    onDeleteNote: handleDeleteNote,
     loading,
   };
 
@@ -172,6 +236,7 @@ function AppContent() {
           {view === 'tasks' && <TasksView {...navProps} />}
           {view === 'calendar' && <CalendarView {...navProps} />}
           {view === 'pomodoro' && <PomodoroView {...navProps} />}
+          {view === 'notes' && <NotesView {...navProps} />}
           {view === 'insights' && <InsightsView {...navProps} />}
           {view === 'account' && <AccountView />}
         </div>
