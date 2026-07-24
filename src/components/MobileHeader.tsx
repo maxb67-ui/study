@@ -1,4 +1,4 @@
-import { Moon, Sun, GraduationCap, LogOut } from 'lucide-react';
+import { Moon, Sun, GraduationCap, LogOut, Search } from 'lucide-react';
 import type { Settings } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -11,9 +11,10 @@ type Props = {
   setView: (v: View) => void;
   notifications: AppNotification[];
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
+  onOpenSearch: () => void;
 };
 
-export function MobileHeader({ settings, toggleDark, setView, notifications, setNotifications }: Props) {
+export function MobileHeader({ settings, toggleDark, setView, notifications, setNotifications, onOpenSearch }: Props) {
   const { profile, user, signOut } = useAuth();
 
   return (
@@ -25,6 +26,13 @@ export function MobileHeader({ settings, toggleDark, setView, notifications, set
         <span className="font-bold text-sm text-neutral-900 dark:text-white">Lumora</span>
       </div>
       <div className="flex items-center gap-1">
+        <button
+          onClick={onOpenSearch}
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+          title="Search"
+        >
+          <Search className="w-[18px] h-[18px] text-primary-500" />
+        </button>
         <NotificationCenter setView={setView} notifications={notifications} setNotifications={setNotifications} />
         <button
           onClick={toggleDark}

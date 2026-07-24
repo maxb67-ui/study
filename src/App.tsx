@@ -21,6 +21,7 @@ import { MobileNav } from '@/components/MobileNav';
 import { MobileHeader } from '@/components/MobileHeader';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { scanForReminders, getSavedNotifications, type AppNotification } from '@/lib/notifications';
+import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 
 export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'tutor' | 'achievements' | 'insights' | 'account';
 
@@ -40,6 +41,19 @@ export function AppContent() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>(getSavedNotifications());
   const [loading, setLoading] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Global Keyboard Shortcut: Cmd + K or Ctrl + K
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const loadTasks = useCallback(async () => {
     if (!isSupabaseConfigured) return;
@@ -223,6 +237,7 @@ export function AppContent() {
         toggleDark={() => update({ dark_mode: !settings.dark_mode })}
         notifications={notifications}
         setNotifications={setNotifications}
+        onOpenSearch={() => setSearchOpen(true)}
       />
       <main className="flex-1 min-w-0 pb-20 lg:pb-0">
         <MobileHeader
@@ -231,6 +246,7 @@ export function AppContent() {
           setView={setView}
           notifications={notifications}
           setNotifications={setNotifications}
+          onOpenSearch={() => setSearchOpen(true)}
         />
         <div key={view} className="page-enter">
           {view === 'dashboard' && <Dashboard {...navProps} />}
@@ -244,6 +260,19 @@ export function AppContent() {
           {view === 'account' && <AccountView />}
         </div>
       </main>
+
+      <GlobalSearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        setView={setView}
+        tasks={tasks}
+        notes={notes}
+        blocks={blocks}
+        onAddTask={addTaskFromDashboard}
+        onQuickFocus={startQuickFocus}
+        startPomodoroForTask={startPomodoroForTask}
+      />
+
       <PomodoroMiniWidget view={view} setView={setView} />
       <MobileNav view={view} setView={setView} />
     </div>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, BookMarked, Bot, Trophy, Moon, Sun, GraduationCap, UserCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, BookMarked, Bot, Trophy, Moon, Sun, GraduationCap, UserCircle, LogOut, Search, Command } from 'lucide-react';
 import type { View } from '@/App';
 import type { Settings } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -12,6 +12,7 @@ type Props = {
   toggleDark: () => void;
   notifications: AppNotification[];
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
+  onOpenSearch: () => void;
 };
 
 const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
@@ -25,7 +26,7 @@ const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'insights', label: 'Insights', icon: Lightbulb },
 ];
 
-export function Sidebar({ view, setView, settings, toggleDark, notifications, setNotifications }: Props) {
+export function Sidebar({ view, setView, settings, toggleDark, notifications, setNotifications, onOpenSearch }: Props) {
   const { profile, user, signOut } = useAuth();
 
   return (
@@ -41,6 +42,22 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
           </div>
         </div>
         <NotificationCenter setView={setView} notifications={notifications} setNotifications={setNotifications} />
+      </div>
+
+      {/* Global Search Quick Trigger */}
+      <div className="px-3.5 mb-2">
+        <button
+          onClick={onOpenSearch}
+          className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-neutral-100/90 dark:bg-neutral-800/80 hover:bg-neutral-200/80 dark:hover:bg-neutral-700/80 border border-neutral-200/60 dark:border-neutral-700/60 text-xs font-semibold text-neutral-500 dark:text-neutral-400 transition-all group"
+        >
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-primary-500 group-hover:scale-110 transition-transform" />
+            <span>Search Lumora...</span>
+          </div>
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white dark:bg-neutral-900 text-[10px] font-mono border border-neutral-200/80 dark:border-neutral-700">
+            <Command className="w-2.5 h-2.5" /> K
+          </span>
+        </button>
       </div>
 
       <nav className="flex-1 px-3.5 py-2 space-y-1.5">
