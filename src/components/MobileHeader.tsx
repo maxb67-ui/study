@@ -1,13 +1,19 @@
 import { Moon, Sun, GraduationCap, LogOut } from 'lucide-react';
 import type { Settings } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { NotificationCenter } from '@/components/NotificationCenter';
+import type { AppNotification } from '@/lib/notifications';
+import type { View } from '@/App';
 
 type Props = {
   settings: Settings;
   toggleDark: () => void;
+  setView: (v: View) => void;
+  notifications: AppNotification[];
+  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
 };
 
-export function MobileHeader({ settings, toggleDark }: Props) {
+export function MobileHeader({ settings, toggleDark, setView, notifications, setNotifications }: Props) {
   const { profile, user, signOut } = useAuth();
 
   return (
@@ -19,6 +25,7 @@ export function MobileHeader({ settings, toggleDark }: Props) {
         <span className="font-bold text-sm text-neutral-900 dark:text-white">Lumora</span>
       </div>
       <div className="flex items-center gap-1">
+        <NotificationCenter setView={setView} notifications={notifications} setNotifications={setNotifications} />
         <button
           onClick={toggleDark}
           className="w-9 h-9 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"

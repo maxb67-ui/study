@@ -17,6 +17,7 @@ import { OnboardingView } from '@/components/views/OnboardingView';
 import { MobileNav } from '@/components/MobileNav';
 import { MobileHeader } from '@/components/MobileHeader';
 import { ToastProvider, useToast } from '@/components/Toast';
+import { scanForReminders, getSavedNotifications, type AppNotification } from '@/lib/notifications';
 
 export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'insights' | 'account';
 
@@ -31,6 +32,7 @@ function AppContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [blocks, setBlocks] = useState<StudyBlock[]>([]);
   const [logs, setLogs] = useState<StudyLog[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>(getSavedNotifications());
   const [loading, setLoading] = useState(true);
 
   const loadTasks = useCallback(async () => {
@@ -85,6 +87,18 @@ function AppContent() {
     return () => { active = false; };
   }, [session, loadTasks, loadBlocks, loadLogs]);
 
+  // Periodically scan for reminders (upcoming exams, tasks due, study blocks)
+  useEffect(() => {
+    if (loading || !session?.user) return;
+    const runScan = () => {
+      const updated = scanForReminders(tasks, blocks, settings, toast);
+      setNotifications(updated);
+    };
+    runScan();
+    const interval = setInterval(runScan, 60000); // scan every 60 seconds
+    return () => clearInterval(interval);
+  }, [loading, session, tasks, blocks, settings, toast]);
+
   function startPomodoroForTask(taskId: string) {
     pomodoro.startPomodoroForTask(taskId);
     setView('pomodoro');
@@ -137,9 +151,22 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex">
-      <Sidebar view={view} setView={setView} settings={settings} toggleDark={() => update({ dark_mode: !settings.dark_mode })} />
+      <Sidebar
+        view={view}
+        setView={setView}
+        settings={settings}
+        toggleDark={() => update({ dark_mode: !settings.dark_mode })}
+        notifications={notifications}
+        setNotifications={setNotifications}
+      />
       <main className="flex-1 min-w-0 pb-20 lg:pb-0">
-        <MobileHeader settings={settings} toggleDark={() => update({ dark_mode: !settings.dark_mode })} />
+        <MobileHeader
+          settings={settings}
+          toggleDark={() => update({ dark_mode: !settings.dark_mode })}
+          setView={setView}
+          notifications={notifications}
+          setNotifications={setNotifications}
+        />
         <div key={view} className="page-enter">
           {view === 'dashboard' && <Dashboard {...navProps} />}
           {view === 'tasks' && <TasksView {...navProps} />}

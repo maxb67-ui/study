@@ -2,12 +2,16 @@ import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, Moon, Sun, G
 import type { View } from '@/App';
 import type { Settings } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { NotificationCenter } from '@/components/NotificationCenter';
+import type { AppNotification } from '@/lib/notifications';
 
 type Props = {
   view: View;
   setView: (v: View) => void;
   settings: Settings;
   toggleDark: () => void;
+  notifications: AppNotification[];
+  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
 };
 
 const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
@@ -18,19 +22,22 @@ const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'insights', label: 'Insights', icon: Lightbulb },
 ];
 
-export function Sidebar({ view, setView, settings, toggleDark }: Props) {
+export function Sidebar({ view, setView, settings, toggleDark, notifications, setNotifications }: Props) {
   const { profile, user, signOut } = useAuth();
 
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 h-screen sticky top-0">
-      <div className="flex items-center gap-2.5 px-6 py-6">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-soft">
-          <GraduationCap className="w-5 h-5 text-white" />
+      <div className="flex items-center justify-between px-6 py-6">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-soft">
+            <GraduationCap className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="font-bold text-base text-neutral-900 dark:text-white leading-none">Lumora</h1>
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">AI Study Planner</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-base text-neutral-900 dark:text-white leading-none">Lumora</h1>
-          <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">AI Study Planner</p>
-        </div>
+        <NotificationCenter setView={setView} notifications={notifications} setNotifications={setNotifications} />
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-1">
