@@ -1,141 +1,32 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, Coffee, Brain, Check } from 'lucide-react';
 import type { NavProps } from '@/components/navProps';
 import type { Task } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
-import { localDateISO } from '@/lib/dates';
 import { PageHeader } from '@/components/PageHeader';
-import { useToast } from '@/components/Toast';
-
-type Mode = 'focus' | 'break';
+import { usePomodoro } from '@/lib/usePomodoroContext';
 
 export function PomodoroView(props: NavProps) {
-  const { tasks, settings, pomodoroTaskId, setPomodoroTaskId, onLogAdded, loading } = props;
-  const toast = useToast();
-  const [mode, setMode] = useState<Mode>('focus');
-  const [secondsLeft, setSecondsLeft] = useState(settings.pomodoro_length_minutes * 60);
-  const [running, setRunning] = useState(false);
-  const [completedPomodoros, setCompletedPomodoros] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const modeRef = useRef<Mode>(mode);
-  const runningRef = useRef<boolean>(running);
-
-  useEffect(() => { modeRef.current = mode; }, [mode]);
-  useEffect(() => { runningRef.current = running; }, [running]);
-
-  const selectedTask = useMemo(() => {
-    return tasks.find((t) => t.id === pomodoroTaskId) ?? null;
-  }, [tasks, pomodoroTaskId]);
+  const { tasks, settings, loading } = props;
+  const {
+    mode,
+    secondsLeft,
+    running,
+    completedPomodoros,
+    selectedTask,
+    toggleRunning,
+    reset,
+    skip,
+    switchMode,
+    setPomodoroTaskId,
+  } = usePomodoro();
 
   const focusSeconds = settings.pomodoro_length_minutes * 60;
   const breakSeconds = settings.break_duration_minutes * 60;
-
-  useEffect(() => {
-    setSecondsLeft(mode === 'focus' ? focusSeconds : breakSeconds);
-  }, [mode, focusSeconds, breakSeconds]);
-
-  const logSession = useCallback(async () => {
-    const today = localDateISO(new Date());
-    const minutes = settings.pomodoro_length_minutes;
-
-    const { data: existing } = await supabase
-      .from('study_logs')
-      .select('*')
-      .eq('date', today)
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from('study_logs')
-        .update({
-          minutes_studied: (existing as { minutes_studied: number }).minutes_studied + minutes,
-          pomodoro_count: (existing as { pomodoro_count: number }).pomodoro_count + 1,
-        })
-        .eq('id', (existing as { id: string }).id);
-      if (error) {
-        toast('error', 'Failed to log study session');
-        return;
-      }
-    } else {
-      const { error } = await supabase.from('study_logs').insert({
-        task_id: pomodoroTaskId,
-        date: today,
-        minutes_studied: minutes,
-        pomodoro_count: 1,
-      });
-      if (error) {
-        toast('error', 'Failed to log study session');
-        return;
-      }
-    }
-
-    setCompletedPomodoros((c) => c + 1);
-    onLogAdded();
-    toast('success', `Pomodoro complete! ${minutes} minutes logged.`);
-  }, [settings.pomodoro_length_minutes, pomodoroTaskId, onLogAdded, toast]);
-
-  useEffect(() => {
-    if (!running) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [running]);
-
-  // Handle timer reaching zero — separate effect avoids side effects in state updater
-  useEffect(() => {
-    if (secondsLeft !== 0 || !running) return;
-    const wasFocus = modeRef.current;
-    setRunning(false);
-    if (wasFocus) {
-      logSession();
-    }
-    setMode(wasFocus ? 'break' : 'focus');
-  }, [secondsLeft, running, logSession]);
-
-  function toggleRunning() {
-    setRunning((r) => !r);
-  }
-
-  function reset() {
-    setRunning(false);
-    setSecondsLeft(mode === 'focus' ? focusSeconds : breakSeconds);
-  }
-
-  function skip() {
-    const wasFocus = mode;
-    if (wasFocus && running) {
-      logSession();
-    }
-    setMode(wasFocus ? 'break' : 'focus');
-    setRunning(false);
-  }
-
-  function switchMode(newMode: Mode) {
-    setMode(newMode);
-    setRunning(false);
-  }
 
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
   const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   const totalSeconds = mode === 'focus' ? focusSeconds : breakSeconds;
-  const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100;
+  const progress = totalSeconds > 0 ? ((totalSeconds - secondsLeft) / totalSeconds) * 100 : 0;
 
   const radius = 130;
   const circumference = 2 * Math.PI * radius;
