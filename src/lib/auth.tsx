@@ -140,11 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         // Create initial profile if trigger hasn't completed
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          full_name: fullName,
-          onboarded: false,
-        }).catch(() => {});
+        try {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            full_name: fullName,
+            onboarded: false,
+          });
+        } catch {}
       }
 
       return { error: null };
