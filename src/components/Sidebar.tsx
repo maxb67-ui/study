@@ -29,21 +29,21 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
   const { profile, user, signOut } = useAuth();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 h-screen sticky top-0">
+    <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r border-neutral-200/80 dark:border-neutral-800/80 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl h-screen sticky top-0 z-30">
       <div className="flex items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-soft">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary-500 via-primary-600 to-indigo-600 flex items-center justify-center shadow-glow-primary">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-base text-neutral-900 dark:text-white leading-none">Lumora</h1>
-            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">AI Study Planner</p>
+            <h1 className="font-extrabold text-lg text-neutral-900 dark:text-white leading-none tracking-tight">Lumora</h1>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary-500 mt-0.5">AI Study Hub</p>
           </div>
         </div>
         <NotificationCenter setView={setView} notifications={notifications} setNotifications={setNotifications} />
       </div>
 
-      <nav className="flex-1 px-3 py-2 space-y-1">
+      <nav className="flex-1 px-3.5 py-2 space-y-1.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = view === item.id;
@@ -51,13 +51,13 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
             <button
               key={item.id}
               onClick={() => setView(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 ${
                 active
-                  ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 shadow-soft'
-                  : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                  ? 'bg-gradient-to-r from-primary-500 to-indigo-600 text-white shadow-glow-primary'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80'
               }`}
             >
-              <Icon className={`w-[18px] h-[18px] ${active ? 'text-primary-600 dark:text-primary-400' : ''}`} />
+              <Icon className={`w-[18px] h-[18px] ${active ? 'text-white' : ''}`} />
               {item.label}
             </button>
           );
@@ -65,42 +65,42 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
       </nav>
 
       {/* User profile section */}
-      <div className="px-3 pb-2 space-y-1">
+      <div className="px-3.5 pb-2 space-y-1">
         <button
           onClick={() => setView('account')}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 ${
             view === 'account'
-              ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300'
-              : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+              ? 'bg-gradient-to-r from-primary-500 to-indigo-600 text-white'
+              : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80'
           }`}
         >
-          <UserCircle className={`w-[18px] h-[18px] ${view === 'account' ? 'text-primary-600 dark:text-primary-400' : ''}`} />
+          <UserCircle className="w-[18px] h-[18px]" />
           Account
         </button>
         <button
           onClick={toggleDark}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-bold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 transition-all"
         >
-          {settings.dark_mode ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+          {settings.dark_mode ? <Sun className="w-[18px] h-[18px] text-amber-400" /> : <Moon className="w-[18px] h-[18px]" />}
           {settings.dark_mode ? 'Light Mode' : 'Dark Mode'}
         </button>
       </div>
 
-      <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
+      <div className="p-3.5 border-t border-neutral-200/80 dark:border-neutral-800/80">
         <div className="flex items-center gap-3 px-2 py-2 mb-1">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-sm font-black shrink-0 shadow-sm">
             {(profile?.full_name || user?.email || '?').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">
+            <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">
               {profile?.full_name || 'Student'}
             </p>
-            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">{user?.email}</p>
+            <p className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500 truncate">{user?.email}</p>
           </div>
         </div>
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:bg-error-50 dark:hover:bg-error-950/30 hover:text-error-600 dark:hover:text-error-400 transition-all"
+          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-bold text-neutral-500 dark:text-neutral-400 hover:bg-error-50 dark:hover:bg-error-950/40 hover:text-error-600 dark:hover:text-error-400 transition-all"
         >
           <LogOut className="w-[18px] h-[18px]" />
           Sign Out

@@ -26,12 +26,12 @@ const TYPE_ICONS: Record<Task['type'], typeof FileText> = {
 };
 
 const TYPE_ACCENT: Record<Task['type'], { bg: string; text: string; bar: string }> = {
-  homework: { bg: 'bg-primary-50 dark:bg-primary-950/30', text: 'text-primary-500', bar: 'bg-primary-400' },
-  assignment: { bg: 'bg-cyan-50 dark:bg-cyan-950/30', text: 'text-cyan-500', bar: 'bg-cyan-400' },
-  project: { bg: 'bg-violet-50 dark:bg-violet-950/30', text: 'text-violet-500', bar: 'bg-violet-400' },
-  quiz: { bg: 'bg-success-50 dark:bg-success-950/30', text: 'text-success-500', bar: 'bg-success-400' },
-  exam: { bg: 'bg-accent-50 dark:bg-accent-950/30', text: 'text-accent-500', bar: 'bg-accent-400' },
-  deadline: { bg: 'bg-error-50 dark:bg-error-950/30', text: 'text-error-500', bar: 'bg-error-400' },
+  homework: { bg: 'bg-primary-50 dark:bg-primary-950/40', text: 'text-primary-500', bar: 'bg-primary-500' },
+  assignment: { bg: 'bg-cyan-50 dark:bg-cyan-950/40', text: 'text-cyan-500', bar: 'bg-cyan-500' },
+  project: { bg: 'bg-violet-50 dark:bg-violet-950/40', text: 'text-violet-500', bar: 'bg-violet-500' },
+  quiz: { bg: 'bg-success-50 dark:bg-success-950/40', text: 'text-success-500', bar: 'bg-success-500' },
+  exam: { bg: 'bg-accent-50 dark:bg-accent-950/40', text: 'text-accent-500', bar: 'bg-accent-500' },
+  deadline: { bg: 'bg-error-50 dark:bg-error-950/40', text: 'text-error-500', bar: 'bg-error-500' },
 };
 
 const SUBJECT_PALETTE = [
@@ -40,14 +40,12 @@ const SUBJECT_PALETTE = [
 ];
 
 const CLASS_COLORS = [
-  'from-primary-400 to-primary-600',
-  'from-success-400 to-success-600',
-  'from-accent-400 to-accent-600',
-  'from-error-400 to-error-600',
-  'from-warning-400 to-warning-600',
-  'from-cyan-400 to-cyan-600',
-  'from-rose-400 to-rose-600',
-  'from-lime-400 to-lime-600',
+  'from-primary-500 to-indigo-600',
+  'from-emerald-500 to-teal-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-red-600',
+  'from-violet-500 to-purple-600',
+  'from-cyan-500 to-blue-600',
 ];
 
 function getGreeting(hour: number): { text: string; icon: typeof Sunrise } {
@@ -112,7 +110,6 @@ export function Dashboard(props: NavProps) {
 
   const taskMap = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
 
-  // Classes from profile + derived from tasks
   const classes = useMemo(() => {
     const profileClasses = profile?.classes ?? [];
     const taskSubjects = tasks.map((t) => t.subject);
@@ -120,7 +117,6 @@ export function Dashboard(props: NavProps) {
     return [...all].sort();
   }, [profile, tasks]);
 
-  // Per-class task counts
   const classStats = useMemo(() => {
     return classes.map((cls) => {
       const classTasks = tasks.filter((t) => t.subject === cls);
@@ -133,7 +129,6 @@ export function Dashboard(props: NavProps) {
     }).filter((c) => c.total > 0);
   }, [classes, tasks]);
 
-  // Study hours by subject
   const subjectData = useMemo(() => {
     const subjectMinutes = new Map<string, number>();
     for (const log of weekLogs) {
@@ -164,7 +159,6 @@ export function Dashboard(props: NavProps) {
 
   const totalSubjectMinutes = subjectData.reduce((s, e) => s + e.minutes, 0);
 
-  // Weekly bar chart data
   const weekDays = useMemo(() => {
     const days: { date: string; label: string; minutes: number; isToday: boolean }[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -229,10 +223,6 @@ export function Dashboard(props: NavProps) {
               <div key={i} className="h-24 bg-neutral-200 dark:bg-neutral-800 rounded-2xl" />
             ))}
           </div>
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 h-64 bg-neutral-200 dark:bg-neutral-800 rounded-2xl" />
-            <div className="h-64 bg-neutral-200 dark:bg-neutral-800 rounded-2xl" />
-          </div>
         </div>
       </div>
     );
@@ -240,36 +230,41 @@ export function Dashboard(props: NavProps) {
 
   return (
     <div className="max-w-6xl mx-auto px-5 lg:px-8 py-6 lg:py-8">
-      {/* Hero greeting card */}
+      {/* FLASHY Hero greeting banner with mesh ambient glows */}
       <div
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 p-5 sm:p-6 mb-6 animate-slide-up shadow-lg shadow-primary-500/20"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-700 p-6 sm:p-8 mb-6 animate-slide-up shadow-glow-primary border border-white/20"
       >
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="absolute -bottom-12 -left-4 w-32 h-32 rounded-full bg-white/5 blur-2xl" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
-              <GreetingIcon className="w-6 h-6 text-white" />
+        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-accent-400/25 blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-16 -left-8 w-56 h-56 rounded-full bg-primary-400/30 blur-3xl" />
+        
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-inner">
+              <GreetingIcon className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">{greeting.text}, {firstName}</h1>
-              <p className="text-sm text-white/70 mt-0.5">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{greeting.text}, {firstName}!</h1>
+                <span className="animate-bounce">✨</span>
+              </div>
+              <p className="text-xs sm:text-sm text-white/80 font-medium mt-1">
                 {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             </div>
           </div>
+
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-medium rounded-xl px-4 py-2.5 text-sm transition-all active:scale-95 disabled:opacity-60 shrink-0"
+            className="inline-flex items-center justify-center gap-2 bg-white text-primary-700 font-bold rounded-2xl px-5 py-3 text-sm transition-all hover:bg-neutral-100 hover:scale-105 active:scale-95 shadow-lg shadow-black/10 shrink-0 disabled:opacity-60"
           >
-            <Sparkles className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-            {generating ? 'Generating...' : 'Generate Schedule'}
+            <Sparkles className={`w-4 h-4 text-accent-500 ${generating ? 'animate-spin' : ''}`} />
+            {generating ? 'Generating Schedule...' : 'Generate AI Schedule'}
           </button>
         </div>
 
-        {/* Inline mini-stats */}
-        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-white/15">
+        {/* Inline glassmorphism mini-stats */}
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/20">
           <HeroStat icon={Flame} label="Day Streak" value={String(streak)} />
           <HeroStat icon={Clock} label="Today" value={`${Math.round(todayMinutes / 60 * 10) / 10}h`} />
           <HeroStat icon={CheckCircle2} label="Done Today" value={`${todayCompleted}/${todayBlocks.length}`} />
@@ -290,7 +285,7 @@ export function Dashboard(props: NavProps) {
       </div>
 
       {/* Quick Action Buttons */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
         <QuickAction onClick={onAddTask} icon={Plus} label="Add Task" sublabel="New assignment or exam" color="primary" delay="0ms" />
         <QuickAction onClick={onQuickFocus} icon={Timer} label="Focus Session" sublabel="Start a Pomodoro" color="accent" delay="50ms" />
         <QuickAction onClick={() => setView('calendar')} icon={Calendar} label="Calendar" sublabel="View your schedule" color="success" delay="100ms" />
@@ -299,21 +294,21 @@ export function Dashboard(props: NavProps) {
 
       {/* Today's Schedule + Weekly Goal */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 card p-5 animate-slide-up" style={{ animationDelay: '200ms' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary-500" />
+        <div className="lg:col-span-2 card p-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary-500" />
               Today's Study Plan
             </h2>
             {todayBlocks.length > 0 && (
               <div className="flex items-center gap-2">
-                <div className="w-20 h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden">
+                <div className="w-24 h-2 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden p-0.5 border border-neutral-200/50">
                   <div
-                    className="h-full rounded-full bg-primary-500 transition-all duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-primary-500 to-indigo-500 transition-all duration-500"
                     style={{ width: `${todayProgress}%` }}
                   />
                 </div>
-                <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                <span className="text-xs font-bold text-neutral-600 dark:text-neutral-300">
                   {todayCompleted}/{todayBlocks.length}
                 </span>
               </div>
@@ -322,14 +317,14 @@ export function Dashboard(props: NavProps) {
 
           {todayBlocks.length === 0 ? (
             <div className="text-center py-10">
-              <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-800 mx-auto flex items-center justify-center mb-3">
-                <Calendar className="w-7 h-7 text-neutral-300 dark:text-neutral-600" />
+              <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-950/30 mx-auto flex items-center justify-center mb-3">
+                <Calendar className="w-7 h-7 text-primary-500" />
               </div>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1">No sessions scheduled today</p>
-              <p className="text-xs text-neutral-400 dark:text-neutral-500">Click "Generate Schedule" to let AI plan your day</p>
+              <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">No sessions scheduled today</p>
+              <p className="text-xs text-neutral-400 dark:text-neutral-500">Click "Generate AI Schedule" to let Lumora organize your day</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {todayBlocks.map((block) => {
                 const task = taskMap.get(block.task_id);
                 if (!task) return null;
@@ -338,28 +333,28 @@ export function Dashboard(props: NavProps) {
                 return (
                   <div
                     key={block.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-sm ${
+                    className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all hover:shadow-md ${
                       block.completed
-                        ? 'bg-success-50 dark:bg-success-950/20 border-success-200 dark:border-success-900'
-                        : 'bg-neutral-50 dark:bg-neutral-800/50 border-neutral-200 dark:border-neutral-700'
+                        ? 'bg-success-50/50 dark:bg-success-950/20 border-success-200 dark:border-success-900/40'
+                        : 'bg-white dark:bg-neutral-900 border-neutral-200/80 dark:border-neutral-800'
                     }`}
                   >
-                    <div className="text-xs font-mono font-semibold text-neutral-400 dark:text-neutral-500 w-16 shrink-0">
+                    <div className="text-xs font-mono font-bold text-neutral-400 dark:text-neutral-500 w-16 shrink-0">
                       {block.start_time.slice(0, 5)}
                     </div>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${accent.bg}`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${accent.bg}`}>
                       <Icon className={`w-4 h-4 ${accent.text}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${block.completed ? 'text-neutral-400 dark:text-neutral-500 line-through' : 'text-neutral-900 dark:text-white'}`}>
+                      <p className={`text-sm font-semibold truncate ${block.completed ? 'text-neutral-400 dark:text-neutral-500 line-through' : 'text-neutral-900 dark:text-white'}`}>
                         {task.title}
                       </p>
-                      <p className="text-xs text-neutral-400 dark:text-neutral-500">{task.subject} · {block.duration_minutes} min</p>
+                      <p className="text-xs text-neutral-400 dark:text-neutral-500 font-medium">{task.subject} · {block.duration_minutes} min</p>
                     </div>
                     {!block.completed && (
                       <button
                         onClick={() => startPomodoroForTask(task.id)}
-                        className="btn-ghost text-xs px-2 py-1.5"
+                        className="btn-primary text-xs px-3 py-1.5"
                       >
                         <Zap className="w-3.5 h-3.5" />
                         Start
@@ -375,14 +370,14 @@ export function Dashboard(props: NavProps) {
           )}
         </div>
 
-        <div className="card p-5 animate-slide-up flex flex-col" style={{ animationDelay: '250ms' }}>
-          <h2 className="font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2 self-start">
-            <Target className="w-4 h-4 text-primary-500" />
+        <div className="card p-6 animate-slide-up flex flex-col" style={{ animationDelay: '250ms' }}>
+          <h2 className="font-bold text-base text-neutral-900 dark:text-white mb-4 flex items-center gap-2 self-start">
+            <Target className="w-5 h-5 text-primary-500" />
             Weekly Goal
           </h2>
           <div className="flex-1 flex flex-col items-center justify-center">
-            <ProgressRing progress={weekGoalProgress} size={140} stroke={12} />
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-4 text-center">
+            <ProgressRing progress={weekGoalProgress} size={150} stroke={14} color="#3380ff" />
+            <p className="text-sm font-bold text-neutral-900 dark:text-white mt-4 text-center">
               {Math.round(weekMinutes)} / {settings.daily_goal_minutes * 7} min this week
             </p>
             <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">
@@ -394,23 +389,23 @@ export function Dashboard(props: NavProps) {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={Flame} iconBg="bg-accent-50 dark:bg-accent-950/30" iconColor="text-accent-500" value={String(streak)} label="Day Streak" delay="300ms" />
-        <StatCard icon={Clock} iconBg="bg-primary-50 dark:bg-primary-950/30" iconColor="text-primary-500" value={`${Math.round(weekMinutes / 60 * 10) / 10}h`} label="This Week" delay="350ms" />
-        <StatCard icon={CheckCircle2} iconBg="bg-success-50 dark:bg-success-950/30" iconColor="text-success-500" value={String(completedTasks.length)} label="Tasks Done" delay="400ms" />
-        <StatCard icon={TrendingUp} iconBg="bg-primary-50 dark:bg-primary-950/30" iconColor="text-primary-500" value={`${taskProgress}%`} label="Completion" delay="450ms" />
+        <StatCard icon={Flame} iconBg="bg-accent-50 dark:bg-accent-950/40" iconColor="text-accent-500" value={String(streak)} label="Day Streak" delay="300ms" />
+        <StatCard icon={Clock} iconBg="bg-primary-50 dark:bg-primary-950/40" iconColor="text-primary-500" value={`${Math.round(weekMinutes / 60 * 10) / 10}h`} label="This Week" delay="350ms" />
+        <StatCard icon={CheckCircle2} iconBg="bg-success-50 dark:bg-success-950/40" iconColor="text-success-500" value={String(completedTasks.length)} label="Tasks Done" delay="400ms" />
+        <StatCard icon={TrendingUp} iconBg="bg-violet-50 dark:bg-violet-950/40" iconColor="text-violet-500" value={`${taskProgress}%`} label="Completion Rate" delay="450ms" />
       </div>
 
       {/* Upcoming Deadlines + Classes Quick Access */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        <div className="card p-5 animate-slide-up" style={{ animationDelay: '500ms' }}>
+        <div className="card p-6 animate-slide-up" style={{ animationDelay: '500ms' }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-              <CalendarClock className="w-4 h-4 text-error-500" />
+            <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
+              <CalendarClock className="w-5 h-5 text-error-500" />
               Upcoming Deadlines
             </h2>
             <button
               onClick={() => setView('tasks')}
-              className="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 hover:gap-1.5 transition-all"
+              className="text-xs text-primary-600 dark:text-primary-400 font-bold flex items-center gap-1 hover:gap-1.5 transition-all"
             >
               View all
               <ChevronRight className="w-3.5 h-3.5" />
@@ -418,30 +413,30 @@ export function Dashboard(props: NavProps) {
           </div>
           {upcomingTasks.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-xl bg-success-50 dark:bg-success-950/30 mx-auto flex items-center justify-center mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-success-50 dark:bg-success-950/30 mx-auto flex items-center justify-center mb-3">
                 <CheckCircle2 className="w-6 h-6 text-success-500" />
               </div>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">All caught up! No pending tasks.</p>
+              <p className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">All caught up! No pending tasks.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {upcomingTasks.map((task: Task) => {
                 const daysLeft = daysBetween(today, new Date(task.due_date));
                 const urgent = daysLeft <= 2;
                 const Icon = TYPE_ICONS[task.type];
                 const accent = TYPE_ACCENT[task.type];
                 return (
-                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
-                    <div className={`w-1 h-10 rounded-full ${urgent ? 'bg-error-400' : accent.bar}`} />
+                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50/70 dark:bg-neutral-800/40 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
+                    <div className={`w-1.5 h-10 rounded-full ${urgent ? 'bg-error-500' : accent.bar}`} />
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${accent.bg}`}>
                       <Icon className={`w-4 h-4 ${accent.text}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{task.title}</p>
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{task.title}</p>
                       <p className="text-xs text-neutral-400 dark:text-neutral-500">{task.subject} · {task.type}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className={`text-xs font-semibold ${urgent ? 'text-error-500' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                      <p className={`text-xs font-bold ${urgent ? 'text-error-500' : 'text-neutral-500 dark:text-neutral-400'}`}>
                         {daysLeft <= 0 ? 'Due today' : daysLeft === 1 ? '1 day left' : `${daysLeft} days left`}
                       </p>
                     </div>
@@ -453,15 +448,15 @@ export function Dashboard(props: NavProps) {
         </div>
 
         {/* Classes Quick Access */}
-        <div className="card p-5 animate-slide-up" style={{ animationDelay: '550ms' }}>
+        <div className="card p-6 animate-slide-up" style={{ animationDelay: '550ms' }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-primary-500" />
+            <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary-500" />
               Your Classes
             </h2>
             <button
               onClick={() => setView('tasks')}
-              className="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 hover:gap-1.5 transition-all"
+              className="text-xs text-primary-600 dark:text-primary-400 font-bold flex items-center gap-1 hover:gap-1.5 transition-all"
             >
               View tasks
               <ChevronRight className="w-3.5 h-3.5" />
@@ -470,15 +465,15 @@ export function Dashboard(props: NavProps) {
           {classStats.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 mx-auto flex items-center justify-center mb-3">
-                <BookOpen className="w-6 h-6 text-neutral-300 dark:text-neutral-600" />
+                <BookOpen className="w-6 h-6 text-neutral-400" />
               </div>
-              <p className="text-sm text-neutral-400 dark:text-neutral-500 mb-3">No classes yet</p>
+              <p className="text-sm text-neutral-400 dark:text-neutral-500 mb-3">No classes added yet</p>
               <button onClick={() => setView('account')} className="btn-secondary text-xs mx-auto">
                 Add classes in Account
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               {classStats.slice(0, 6).map((cls, i) => {
                 const gradient = CLASS_COLORS[i % CLASS_COLORS.length];
                 const completionPct = cls.total > 0 ? Math.round((cls.completed / cls.total) * 100) : 0;
@@ -486,22 +481,22 @@ export function Dashboard(props: NavProps) {
                   <button
                     key={cls.name}
                     onClick={() => setView('tasks')}
-                    className="relative overflow-hidden rounded-xl p-3 text-left group hover:shadow-md transition-all"
+                    className="relative overflow-hidden rounded-2xl p-3.5 text-left group hover:shadow-md hover:-translate-y-0.5 transition-all border border-neutral-200/60 dark:border-neutral-800"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`} />
                     <div className="relative">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center mb-2`}>
-                        <BookOpen className="w-4 h-4 text-white" />
+                      <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-2.5 text-white shadow-md`}>
+                        <BookOpen className="w-4 h-4" />
                       </div>
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{cls.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
+                      <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">{cls.name}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-neutral-200/80 dark:bg-neutral-800 overflow-hidden">
                           <div
                             className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
                             style={{ width: `${completionPct}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-medium text-neutral-400 dark:text-neutral-500 shrink-0">
+                        <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 shrink-0">
                           {cls.active} left
                         </span>
                       </div>
@@ -514,138 +509,16 @@ export function Dashboard(props: NavProps) {
         </div>
       </div>
 
-      {/* Weekly Activity Chart + Study Hours by Subject */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        <div className="card p-5 animate-slide-up" style={{ animationDelay: '600ms' }}>
-          <h2 className="font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary-500" />
-            Weekly Study Activity
-          </h2>
-          <div className="flex items-end justify-between gap-2 h-40">
-            {weekDays.map((day) => {
-              const heightPct = (day.minutes / maxDayMinutes) * 100;
-              return (
-                <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full flex-1 flex items-end">
-                    <div
-                      className={`w-full rounded-t-lg transition-all duration-500 ${
-                        day.isToday ? 'bg-primary-500' : 'bg-primary-200 dark:bg-primary-800'
-                      }`}
-                      style={{ height: `${Math.max(heightPct, day.minutes > 0 ? 4 : 0)}%` }}
-                      title={`${day.minutes} min`}
-                    />
-                  </div>
-                  <span className={`text-[11px] font-medium ${day.isToday ? 'text-primary-600 dark:text-primary-400' : 'text-neutral-400 dark:text-neutral-500'}`}>
-                    {day.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-            <span className="text-xs text-neutral-400 dark:text-neutral-500">Total: {Math.round(weekMinutes)} min</span>
-            <span className="text-xs text-neutral-400 dark:text-neutral-500">Goal: {settings.daily_goal_minutes} min/day</span>
-          </div>
-        </div>
-
-        <div className="card p-5 animate-slide-up" style={{ animationDelay: '650ms' }}>
-          <h2 className="font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-accent-500" />
-            Study Hours by Subject
-          </h2>
-          {subjectData.length === 0 ? (
-            <div className="text-center py-10">
-              <div className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 mx-auto flex items-center justify-center mb-3">
-                <BookOpen className="w-6 h-6 text-neutral-300 dark:text-neutral-600" />
-              </div>
-              <p className="text-sm text-neutral-400 dark:text-neutral-500">No study data yet this week</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-5 mb-4">
-                <SubjectDonut data={subjectData} totalMinutes={totalSubjectMinutes} />
-                <div className="flex-1 space-y-2 min-w-0">
-                  {subjectData.map((entry) => (
-                    <div key={entry.subject} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-                      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300 truncate flex-1">{entry.subject}</span>
-                      <span className="text-xs text-neutral-400 dark:text-neutral-500 shrink-0">{Math.round(entry.minutes / 60 * 10) / 10}h</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800">
-                <p className="text-xs text-neutral-400 dark:text-neutral-500 text-center">
-                  {Math.round(totalSubjectMinutes / 60 * 10) / 10}h total across {subjectData.length} {subjectData.length === 1 ? 'subject' : 'subjects'} this week
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Recently Completed + AI Insights */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card p-5 animate-slide-up" style={{ animationDelay: '700ms' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-              <Award className="w-4 h-4 text-success-500" />
-              Recently Completed
-            </h2>
-            <button
-              onClick={() => setView('tasks')}
-              className="text-xs text-primary-600 dark:text-primary-400 font-medium flex items-center gap-1 hover:gap-1.5 transition-all"
-            >
-              View all
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          {recentlyCompleted.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 mx-auto flex items-center justify-center mb-3">
-                <ListChecks className="w-6 h-6 text-neutral-300 dark:text-neutral-600" />
-              </div>
-              <p className="text-sm text-neutral-400 dark:text-neutral-500">No completed tasks yet. Finish one to see it here!</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentlyCompleted.map((task) => {
-                const Icon = TYPE_ICONS[task.type];
-                const accent = TYPE_ACCENT[task.type];
-                return (
-                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-success-50/50 dark:bg-success-950/10">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${accent.bg}`}>
-                      <Icon className={`w-4 h-4 ${accent.text}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 truncate line-through">{task.title}</p>
-                      <p className="text-xs text-neutral-400 dark:text-neutral-500">{task.subject}</p>
-                    </div>
-                    <CheckCircle2 className="w-5 h-5 text-success-500 shrink-0" />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="animate-slide-up" style={{ animationDelay: '750ms' }}>
-          <h2 className="font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-accent-500" />
-            AI Recommendations
-          </h2>
-          <div className="space-y-3">
-            {insights.slice(0, 3).map((insight, i) => (
-              <InsightCard key={i} insight={insight} />
-            ))}
-            <button
-              onClick={() => setView('insights')}
-              className="btn-ghost w-full text-xs justify-center text-primary-600 dark:text-primary-400"
-            >
-              View all insights
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      {/* AI Recommendations */}
+      <div className="animate-slide-up" style={{ animationDelay: '600ms' }}>
+        <h2 className="font-bold text-base text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-accent-500 animate-pulse" />
+          AI Recommendations
+        </h2>
+        <div className="grid md:grid-cols-3 gap-3.5">
+          {insights.slice(0, 3).map((insight, i) => (
+            <InsightCard key={i} insight={insight} />
+          ))}
         </div>
       </div>
     </div>
@@ -654,11 +527,11 @@ export function Dashboard(props: NavProps) {
 
 function HeroStat({ icon: Icon, label, value }: { icon: typeof Flame; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon className="w-4 h-4 text-white/60" />
+    <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md p-2.5 rounded-xl border border-white/15">
+      <Icon className="w-4 h-4 text-white/80 shrink-0" />
       <div>
-        <p className="text-lg font-bold text-white leading-none">{value}</p>
-        <p className="text-[10px] text-white/60 mt-0.5">{label}</p>
+        <p className="text-base font-extrabold text-white leading-none">{value}</p>
+        <p className="text-[10px] font-medium text-white/70 mt-0.5">{label}</p>
       </div>
     </div>
   );
@@ -675,22 +548,22 @@ function QuickAction({
   delay: string;
 }) {
   const colorClasses = {
-    primary: 'bg-primary-50 dark:bg-primary-950/30 text-primary-500',
-    accent: 'bg-accent-50 dark:bg-accent-950/30 text-accent-500',
-    success: 'bg-success-50 dark:bg-success-950/30 text-success-500',
+    primary: 'bg-primary-50 dark:bg-primary-950/40 text-primary-500 group-hover:bg-primary-500 group-hover:text-white',
+    accent: 'bg-accent-50 dark:bg-accent-950/40 text-accent-500 group-hover:bg-accent-500 group-hover:text-white',
+    success: 'bg-success-50 dark:bg-success-950/40 text-success-500 group-hover:bg-success-500 group-hover:text-white',
   };
   return (
     <button
       onClick={onClick}
-      className="card p-4 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all group animate-slide-up"
+      className="card p-4 flex items-center gap-3 hover:shadow-glow-primary hover:-translate-y-1 transition-all duration-300 group animate-slide-up"
       style={{ animationDelay: delay }}
     >
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${colorClasses[color]}`}>
+      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 ${colorClasses[color]}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="text-left">
-        <p className="text-sm font-semibold text-neutral-900 dark:text-white">{label}</p>
-        <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{sublabel}</p>
+        <p className="text-sm font-bold text-neutral-900 dark:text-white">{label}</p>
+        <p className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500">{sublabel}</p>
       </div>
     </button>
   );
@@ -709,59 +582,12 @@ function StatCard({
   return (
     <div className="card p-5 animate-slide-up" style={{ animationDelay: delay }}>
       <div className="flex items-center justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${iconBg}`}>
           <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
-        <span className="text-2xl font-bold text-neutral-900 dark:text-white">{value}</span>
+        <span className="text-2xl font-extrabold text-neutral-900 dark:text-white">{value}</span>
       </div>
-      <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{label}</p>
-    </div>
-  );
-}
-
-function SubjectDonut({ data, totalMinutes }: { data: { subject: string; minutes: number; pct: number; color: string }[]; totalMinutes: number }) {
-  const size = 120;
-  const stroke = 18;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  let accumulatedOffset = 0;
-
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          className="stroke-neutral-200 dark:stroke-neutral-800"
-        />
-        {data.map((entry, i) => {
-          const dashLength = (entry.pct / 100) * circumference;
-          const dashArray = `${dashLength} ${circumference - dashLength}`;
-          const dashOffset = -accumulatedOffset;
-          accumulatedOffset += dashLength;
-          return (
-            <circle
-              key={i}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              strokeWidth={stroke}
-              stroke={entry.color}
-              strokeDasharray={dashArray}
-              strokeDashoffset={dashOffset}
-              style={{ transition: 'stroke-dashoffset 0.6s ease-out, stroke-dasharray 0.6s ease-out' }}
-            />
-          );
-        })}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-bold text-neutral-900 dark:text-white">{Math.round(totalMinutes / 60 * 10) / 10}h</span>
-        <span className="text-[10px] text-neutral-400 dark:text-neutral-500">total</span>
-      </div>
+      <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">{label}</p>
     </div>
   );
 }
