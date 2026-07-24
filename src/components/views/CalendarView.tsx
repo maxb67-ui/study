@@ -76,14 +76,12 @@ export function CalendarView(props: NavProps) {
       if (!m.has(b.scheduled_date)) m.set(b.scheduled_date, []);
       m.get(b.scheduled_date)!.push(b);
     }
-    // sort blocks within each day by start_time
     for (const arr of m.values()) {
       arr.sort((a, b) => a.start_time.localeCompare(b.start_time));
     }
     return m;
   }, [blocks]);
 
-  // ---- Month view cells ----
   const monthCells: (number | null)[] = [];
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -93,7 +91,6 @@ export function CalendarView(props: NavProps) {
   for (let d = 1; d <= daysInMonth; d++) monthCells.push(d);
   while (monthCells.length % 7 !== 0) monthCells.push(null);
 
-  // ---- Week view ----
   const weekStart = useMemo(() => {
     const d = new Date(cursor);
     const day = d.getDay();
@@ -117,6 +114,14 @@ export function CalendarView(props: NavProps) {
 
   async function handleGenerate() {
     setGenerating(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      toast('error', 'Authentication required to generate schedule');
+      setGenerating(false);
+      return;
+    }
+    const userId = session.user.id;
+
     const today = new Date();
     const result = generateSchedule(tasks, settings, blocks, props.logs, today);
     if (result.blocks.length === 0) {
@@ -124,14 +129,18 @@ export function CalendarView(props: NavProps) {
       setGenerating(false);
       return;
     }
-    const { error: delError } = await supabase.from('study_blocks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    // Secure user-scoped deletion
+    const { error: delError } = await supabase.from('study_blocks').delete().eq('user_id', userId);
     if (delError) {
       toast('error', 'Failed to clear old schedule');
       setGenerating(false);
       return;
     }
+
     const { error: insError } = await supabase.from('study_blocks').insert(
       result.blocks.map((b) => ({
+        user_id: userId,
         task_id: b.task_id,
         scheduled_date: b.scheduled_date,
         start_time: b.start_time,
@@ -153,7 +162,16 @@ export function CalendarView(props: NavProps) {
   }
 
   async function toggleBlock(blockId: string, current: boolean) {
-    const { error } = await supabase.from('study_blocks').update({ completed: !current }).eq('id', blockId);
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    const { error } = await supabase
+      .from('study_blocks')
+      .update({ completed: !current })
+      .eq('id', blockId)
+      .eq('user_id', userId);
+
     if (error) {
       toast('error', 'Failed to update session');
       return;
@@ -161,7 +179,6 @@ export function CalendarView(props: NavProps) {
     onBlocksGenerated();
   }
 
-  // ---- Drag and drop ----
   function onDragStart(e: React.DragEvent, block: StudyBlock) {
     setDraggedBlock(block);
     e.dataTransfer.effectAllowed = 'move';
@@ -192,11 +209,17 @@ export function CalendarView(props: NavProps) {
     setDragOverDate(null);
     if (!block || block.scheduled_date === newDate) return;
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+
     setSavingId(block.id);
     const { error } = await supabase
       .from('study_blocks')
       .update({ scheduled_date: newDate })
-      .eq('id', block.id);
+      .eq('id', block.id)
+      .eq('user_id', userId);
+
     if (error) {
       toast('error', 'Failed to reschedule session');
       setSavingId(null);
@@ -208,7 +231,6 @@ export function CalendarView(props: NavProps) {
     toast('success', `Moved "${task?.title ?? 'session'}" to ${new Date(newDate + 'T00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
   }
 
-  // ---- Loading state ----
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto px-5 lg:px-8 py-6 lg:py-8">
@@ -260,14 +282,12 @@ export function CalendarView(props: NavProps) {
         }
       />
 
-      {/* Drag hint banner */}
       <div className="flex items-center gap-2 mb-4 text-xs text-neutral-400 dark:text-neutral-500 bg-primary-50/50 dark:bg-primary-950/20 rounded-lg px-3 py-2">
         <GripVertical className="w-3.5 h-3.5 text-primary-400" />
         <span>Drag any study session card to a different day to reschedule it</span>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Calendar grid */}
         <div className="lg:col-span-2 card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-neutral-900 dark:text-white">
@@ -343,7 +363,6 @@ export function CalendarView(props: NavProps) {
             />
           )}
 
-          {/* Legend */}
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-success-400" />
@@ -358,7 +377,6 @@ export function CalendarView(props: NavProps) {
           </div>
         </div>
 
-        {/* Day detail panel */}
         <div className="card p-5">
           {selectedDate ? (
             <>
@@ -463,7 +481,6 @@ export function CalendarView(props: NavProps) {
   );
 }
 
-// ---- Month Grid ----
 type GridProps = {
   todayISO: string;
   selectedDate: string | null;
@@ -567,7 +584,6 @@ function MonthGrid({
   );
 }
 
-// ---- Week Grid ----
 function WeekGrid({
   weekDays, todayISO, selectedDate,
   tasksByDate, blocksByDate, taskMap,
@@ -607,7 +623,6 @@ function WeekGrid({
               {isToday && <span className="text-[9px] font-medium text-primary-500 uppercase">Today</span>}
             </div>
 
-            {/* Study session blocks (draggable) */}
             {dayBlocks.map((b) => {
               const task = taskMap.get(b.task_id);
               const Icon = task ? TYPE_ICONS[task.type] : FileText;
@@ -633,7 +648,6 @@ function WeekGrid({
               );
             })}
 
-            {/* Task due indicators */}
             {dayTasks.map((t) => {
               const Icon = TYPE_ICONS[t.type];
               return (

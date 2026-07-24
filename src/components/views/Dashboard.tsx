@@ -90,9 +90,6 @@ export function Dashboard(props: NavProps) {
   }, [logs, today]);
 
   const weekMinutes = weekLogs.reduce((s, l) => s + l.minutes_studied, 0);
-  const weekGoalProgress = settings.daily_goal_minutes > 0
-    ? Math.min(100, Math.round((weekMinutes / (settings.daily_goal_minutes * 7)) * 100))
-    : 0;
 
   const completedTasks = tasks.filter((t) => t.completed);
   const taskProgress = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
@@ -101,11 +98,6 @@ export function Dashboard(props: NavProps) {
   const upcomingTasks = useMemo(
     () => [...activeTasks].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()).slice(0, 5),
     [activeTasks],
-  );
-
-  const recentlyCompleted = useMemo(
-    () => completedTasks.slice(0, 4),
-    [completedTasks],
   );
 
   const taskMap = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
@@ -129,70 +121,34 @@ export function Dashboard(props: NavProps) {
     }).filter((c) => c.total > 0);
   }, [classes, tasks]);
 
-  const subjectData = useMemo(() => {
-    const subjectMinutes = new Map<string, number>();
-    for (const log of weekLogs) {
-      if (log.task_id) {
-        const task = taskMap.get(log.task_id);
-        if (task) subjectMinutes.set(task.subject, (subjectMinutes.get(task.subject) ?? 0) + log.minutes_studied);
-      }
-    }
-    const weekStart = localDateISO(addDays(today, -6));
-    const weekEnd = localDateISO(today);
-    for (const block of blocks) {
-      if (block.scheduled_date >= weekStart && block.scheduled_date <= weekEnd) {
-        const task = taskMap.get(block.task_id);
-        if (task) subjectMinutes.set(task.subject, (subjectMinutes.get(task.subject) ?? 0) + block.duration_minutes);
-      }
-    }
-    const entries = [...subjectMinutes.entries()]
-      .map(([subject, minutes]) => ({ subject, minutes }))
-      .sort((a, b) => b.minutes - a.minutes)
-      .slice(0, 6);
-    const total = entries.reduce((s, e) => s + e.minutes, 0);
-    return entries.map((e, i) => ({
-      ...e,
-      pct: total > 0 ? (e.minutes / total) * 100 : 0,
-      color: SUBJECT_PALETTE[i % SUBJECT_PALETTE.length],
-    }));
-  }, [weekLogs, blocks, taskMap, today]);
-
-  const totalSubjectMinutes = subjectData.reduce((s, e) => s + e.minutes, 0);
-
-  const weekDays = useMemo(() => {
-    const days: { date: string; label: string; minutes: number; isToday: boolean }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = addDays(today, -i);
-      const iso = localDateISO(d);
-      const log = logs.find((l) => l.date === iso);
-      days.push({
-        date: iso,
-        label: d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2),
-        minutes: log?.minutes_studied ?? 0,
-        isToday: iso === todayISO,
-      });
-    }
-    return days;
-  }, [logs, today, todayISO]);
-
-  const maxDayMinutes = Math.max(...weekDays.map((d) => d.minutes), settings.daily_goal_minutes, 1);
-
   async function handleGenerate() {
     setGenerating(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      toast('error', 'Authentication required to generate schedule');
+      setGenerating(false);
+      return;
+    }
+    const userId = session.user.id;
+
     const result = generateSchedule(tasks, settings, blocks, logs, today);
     if (result.blocks.length === 0) {
       toast('info', 'No active tasks to schedule. Add tasks first.');
       setGenerating(false);
       return;
     }
-    const { error: delError } = await supabase.from('study_blocks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    // Secure user-scoped deletion
+    const { error: delError } = await supabase.from('study_blocks').delete().eq('user_id', userId);
     if (delError) {
       toast('error', 'Failed to clear old schedule');
       setGenerating(false);
       return;
     }
+
     const { error: insError } = await supabase.from('study_blocks').insert(
       result.blocks.map((b) => ({
+        user_id: userId,
         task_id: b.task_id,
         scheduled_date: b.scheduled_date,
         start_time: b.start_time,
@@ -230,10 +186,7 @@ export function Dashboard(props: NavProps) {
 
   return (
     <div className="max-w-6xl mx-auto px-5 lg:px-8 py-6 lg:py-8">
-      {/* FLASHY Hero greeting banner with mesh ambient glows */}
-      <div
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-700 p-6 sm:p-8 mb-6 animate-slide-up shadow-glow-primary border border-white/20"
-      >
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-700 p-6 sm:p-8 mb-6 animate-slide-up shadow-glow-primary border border-white/20">
         <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-accent-400/25 blur-3xl animate-pulse-slow" />
         <div className="absolute -bottom-16 -left-8 w-56 h-56 rounded-full bg-primary-400/30 blur-3xl" />
         
@@ -263,7 +216,6 @@ export function Dashboard(props: NavProps) {
           </button>
         </div>
 
-        {/* Inline glassmorphism mini-stats */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/20">
           <HeroStat icon={Flame} label="Day Streak" value={String(streak)} />
           <HeroStat icon={Clock} label="Today" value={`${Math.round(todayMinutes / 60 * 10) / 10}h`} />
@@ -272,7 +224,6 @@ export function Dashboard(props: NavProps) {
         </div>
       </div>
 
-      {/* Gamification Level & Daily Quests Banner */}
       <div className="mb-6">
         <GamificationCard
           userLevel={userLevel}
@@ -284,7 +235,6 @@ export function Dashboard(props: NavProps) {
         />
       </div>
 
-      {/* Quick Action Buttons */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
         <QuickAction onClick={onAddTask} icon={Plus} label="Add Task" sublabel="New assignment or exam" color="primary" delay="0ms" />
         <QuickAction onClick={onQuickFocus} icon={Timer} label="Focus Session" sublabel="Start a Pomodoro" color="accent" delay="50ms" />
@@ -292,7 +242,6 @@ export function Dashboard(props: NavProps) {
         <QuickAction onClick={() => setView('insights')} icon={TrendingUp} label="Insights" sublabel="Track your progress" color="primary" delay="150ms" />
       </div>
 
-      {/* Today's Schedule + Weekly Goal */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 card p-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
           <div className="flex items-center justify-between mb-5">
@@ -376,7 +325,7 @@ export function Dashboard(props: NavProps) {
             Weekly Goal
           </h2>
           <div className="flex-1 flex flex-col items-center justify-center">
-            <ProgressRing progress={weekGoalProgress} size={150} stroke={14} color="#3380ff" />
+            <ProgressRing progress={settings.daily_goal_minutes > 0 ? Math.min(100, Math.round((weekMinutes / (settings.daily_goal_minutes * 7)) * 100)) : 0} size={150} stroke={14} color="#3380ff" />
             <p className="text-sm font-bold text-neutral-900 dark:text-white mt-4 text-center">
               {Math.round(weekMinutes)} / {settings.daily_goal_minutes * 7} min this week
             </p>
@@ -387,7 +336,6 @@ export function Dashboard(props: NavProps) {
         </div>
       </div>
 
-      {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={Flame} iconBg="bg-accent-50 dark:bg-accent-950/40" iconColor="text-accent-500" value={String(streak)} label="Day Streak" delay="300ms" />
         <StatCard icon={Clock} iconBg="bg-primary-50 dark:bg-primary-950/40" iconColor="text-primary-500" value={`${Math.round(weekMinutes / 60 * 10) / 10}h`} label="This Week" delay="350ms" />
@@ -395,7 +343,6 @@ export function Dashboard(props: NavProps) {
         <StatCard icon={TrendingUp} iconBg="bg-violet-50 dark:bg-violet-950/40" iconColor="text-violet-500" value={`${taskProgress}%`} label="Completion Rate" delay="450ms" />
       </div>
 
-      {/* Upcoming Deadlines + Classes Quick Access */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <div className="card p-6 animate-slide-up" style={{ animationDelay: '500ms' }}>
           <div className="flex items-center justify-between mb-4">
@@ -447,7 +394,6 @@ export function Dashboard(props: NavProps) {
           )}
         </div>
 
-        {/* Classes Quick Access */}
         <div className="card p-6 animate-slide-up" style={{ animationDelay: '550ms' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
@@ -509,7 +455,6 @@ export function Dashboard(props: NavProps) {
         </div>
       </div>
 
-      {/* AI Recommendations */}
       <div className="animate-slide-up" style={{ animationDelay: '600ms' }}>
         <h2 className="font-bold text-base text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-accent-500 animate-pulse" />

@@ -43,7 +43,6 @@ export function AppContent() {
   const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Global Keyboard Shortcut: Cmd + K or Ctrl + K
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -56,31 +55,43 @@ export function AppContent() {
   }, []);
 
   const loadTasks = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !session?.user?.id) return;
     try {
-      const { data, error } = await supabase.from('tasks').select('*').order('due_date', { ascending: true });
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('due_date', { ascending: true });
       if (!error && data) setTasks(data as Task[]);
     } catch {}
-  }, []);
+  }, [session]);
 
   const loadBlocks = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !session?.user?.id) return;
     try {
-      const { data, error } = await supabase.from('study_blocks').select('*').order('scheduled_date', { ascending: true });
+      const { data, error } = await supabase
+        .from('study_blocks')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('scheduled_date', { ascending: true });
       if (!error && data) setBlocks(data as StudyBlock[]);
     } catch {}
-  }, []);
+  }, [session]);
 
   const loadLogs = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !session?.user?.id) return;
     try {
-      const { data, error } = await supabase.from('study_logs').select('*').order('date', { ascending: true });
+      const { data, error } = await supabase
+        .from('study_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: true });
       if (!error && data) setLogs(data as StudyLog[]);
     } catch {}
-  }, []);
+  }, [session]);
 
   const loadNotes = useCallback(async () => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !session?.user?.id) {
       try {
         const saved = localStorage.getItem(LOCAL_NOTES_KEY);
         if (saved) setNotes(JSON.parse(saved));
@@ -88,7 +99,11 @@ export function AppContent() {
       return;
     }
     try {
-      const { data, error } = await supabase.from('notes').select('*').order('updated_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('updated_at', { ascending: false });
       if (!error && data) setNotes(data as Note[]);
       else {
         const saved = localStorage.getItem(LOCAL_NOTES_KEY);
@@ -98,7 +113,7 @@ export function AppContent() {
       const saved = localStorage.getItem(LOCAL_NOTES_KEY);
       if (saved) setNotes(JSON.parse(saved));
     }
-  }, []);
+  }, [session]);
 
   const handleSaveNote = useCallback(async (input: NoteInput, id?: string) => {
     const now = new Date().toISOString();
@@ -120,12 +135,18 @@ export function AppContent() {
     setNotes(updatedNotes);
     localStorage.setItem(LOCAL_NOTES_KEY, JSON.stringify(updatedNotes));
 
-    if (isSupabaseConfigured && session?.user) {
+    if (isSupabaseConfigured && session?.user?.id) {
       try {
         if (id) {
-          await supabase.from('notes').update({ ...input, updated_at: now }).eq('id', id);
+          await supabase
+            .from('notes')
+            .update({ ...input, updated_at: now })
+            .eq('id', id)
+            .eq('user_id', session.user.id);
         } else {
-          await supabase.from('notes').insert({ ...input, user_id: session.user.id });
+          await supabase
+            .from('notes')
+            .insert({ ...input, user_id: session.user.id });
         }
       } catch {}
     }
@@ -137,13 +158,17 @@ export function AppContent() {
     setNotes(updated);
     localStorage.setItem(LOCAL_NOTES_KEY, JSON.stringify(updated));
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured && session?.user?.id) {
       try {
-        await supabase.from('notes').delete().eq('id', id);
+        await supabase
+          .from('notes')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', session.user.id);
       } catch {}
     }
     toast('success', 'Note deleted');
-  }, [notes, toast]);
+  }, [notes, session, toast]);
 
   useEffect(() => {
     if (!session?.user) {
@@ -162,7 +187,6 @@ export function AppContent() {
     return () => { active = false; };
   }, [session, loadTasks, loadBlocks, loadLogs, loadNotes]);
 
-  // Periodically scan for reminders
   useEffect(() => {
     if (loading || !session?.user) return;
     const runScan = () => {
@@ -281,20 +305,19 @@ export function AppContent() {
 
 function AppInner() {
   const { settings } = useSettings();
+  const { session } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [logs, setLogs] = useState<StudyLog[]>([]);
 
   const loadTasks = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
-    const { data } = await supabase.from('tasks').select('*');
+    if (!isSupabaseConfigured || !session?.user?.id) return;
+    const { data } = await supabase.from('tasks').select('*').eq('user_id', session.user.id);
     if (data) setTasks(data as Task[]);
-  }, []);
+  }, [session]);
 
   const loadLogs = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
-    const { data } = await supabase.from('study_logs').select('*');
-    if (data) setLogs(data as StudyLog[]);
-  }, []);
+    if (!isSupabaseConfigured || !session?.user?.id) return;
+    await supabase.from('study_logs').select('*').eq('user_id', session.user.id);
+  }, [session]);
 
   useEffect(() => {
     loadTasks();

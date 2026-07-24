@@ -54,11 +54,23 @@ export function TaskModal({ task, onSave, onClose, saving }: Props) {
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!title.trim()) e.title = 'Title is required';
-    if (!subject.trim()) e.subject = 'Subject is required';
+    const cleanTitle = title.trim();
+    const cleanSubject = subject.trim();
+
+    if (!cleanTitle) e.title = 'Title is required';
+    else if (cleanTitle.length > 200) e.title = 'Title cannot exceed 200 characters';
+
+    if (!cleanSubject) e.subject = 'Subject is required';
+    else if (cleanSubject.length > 100) e.subject = 'Subject cannot exceed 100 characters';
+
     if (!dueDate) e.dueDate = 'Due date is required';
+    if (isNaN(new Date(dueDate).getTime())) e.dueDate = 'Invalid date selected';
+
     if (estimatedHours < 0.5) e.estimatedHours = 'Must be at least 0.5 hours';
     if (estimatedHours > 50) e.estimatedHours = 'Cannot exceed 50 hours';
+
+    if (notes && notes.length > 2000) e.notes = 'Notes cannot exceed 2000 characters';
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -68,14 +80,14 @@ export function TaskModal({ task, onSave, onClose, saving }: Props) {
     if (!validate()) return;
     onSave(
       {
-        title: title.trim(),
+        title: title.trim().slice(0, 200),
         type,
-        subject: subject.trim(),
-        difficulty,
-        priority,
+        subject: subject.trim().slice(0, 100),
+        difficulty: Math.min(5, Math.max(1, difficulty)),
+        priority: Math.min(5, Math.max(1, priority)),
         due_date: new Date(dueDate).toISOString(),
-        estimated_hours: estimatedHours,
-        notes: notes.trim() || null,
+        estimated_hours: Math.min(50, Math.max(0.5, estimatedHours)),
+        notes: notes.trim().slice(0, 2000) || null,
       },
       task?.id,
     );
@@ -102,6 +114,7 @@ export function TaskModal({ task, onSave, onClose, saving }: Props) {
             <input
               className={`input ${errors.title ? 'border-error-400 focus:ring-error-400' : ''}`}
               value={title}
+              maxLength={200}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Calculus Problem Set 4"
               autoFocus
@@ -143,6 +156,7 @@ export function TaskModal({ task, onSave, onClose, saving }: Props) {
               <input
                 className={`input ${errors.subject ? 'border-error-400 focus:ring-error-400' : ''}`}
                 value={subject}
+                maxLength={100}
                 onChange={(e) => setSubject(e.target.value)}
                 onFocus={() => setShowSubjectSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSubjectSuggestions(false), 150)}
@@ -251,10 +265,17 @@ export function TaskModal({ task, onSave, onClose, saving }: Props) {
             <label className="label">Notes (optional)</label>
             <textarea
               className="input min-h-[80px] resize-none"
+              maxLength={2000}
               value={notes ?? ''}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Topics to cover, chapters, etc."
             />
+            {errors.notes && (
+              <p className="text-xs text-error-500 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {errors.notes}
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">

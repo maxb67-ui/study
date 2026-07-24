@@ -60,19 +60,25 @@ export function NotesView(props: NavProps) {
   }
 
   function handleSave() {
-    if (!title.trim()) {
+    const cleanTitle = title.trim().slice(0, 200);
+    const cleanSubject = subject.trim().slice(0, 100);
+    const cleanContent = content.slice(0, 20000);
+
+    if (!cleanTitle) {
       toast('error', 'Note title is required');
       return;
     }
+
     const tags = tagsInput
       .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
+      .map((t) => t.trim().slice(0, 30))
+      .filter(Boolean)
+      .slice(0, 10);
 
     const input: NoteInput = {
-      title,
-      subject,
-      content,
+      title: cleanTitle,
+      subject: cleanSubject || 'General',
+      content: cleanContent,
       tags,
     };
 
@@ -88,7 +94,7 @@ export function NotesView(props: NavProps) {
     setAiGenerating(true);
     setTimeout(() => {
       const summary = `\n\n✨ **AI Summary & Key Concepts**:\n- High yield concept breakdown for ${subject}.\n- Core formula / rule applied in active context.\n- Main exam takeaway: Focus on definitions and practical examples.`;
-      setContent((prev) => prev + summary);
+      setContent((prev) => (prev + summary).slice(0, 20000));
       setAiGenerating(false);
       toast('success', 'AI Summary generated!');
     }, 800);
@@ -98,7 +104,6 @@ export function NotesView(props: NavProps) {
     setActiveDeckTitle(note.title);
     setActiveDeckSubject(note.subject);
 
-    // Generate flashcards from content
     const sampleCards: Flashcard[] = [
       {
         id: '1',
@@ -124,7 +129,6 @@ export function NotesView(props: NavProps) {
 
   return (
     <div className="max-w-6xl mx-auto px-5 lg:px-8 py-6 lg:py-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -141,13 +145,13 @@ export function NotesView(props: NavProps) {
         </button>
       </div>
 
-      {/* Filter & Search Bar */}
       <div className="card p-4 mb-6 flex flex-col md:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-neutral-400" />
           <input
             type="text"
             value={search}
+            maxLength={100}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search notes content, titles, or #tags..."
             className="input pl-10 text-xs sm:text-sm"
@@ -181,7 +185,6 @@ export function NotesView(props: NavProps) {
         </div>
       </div>
 
-      {/* Note Editor Modal / Form */}
       {isCreating && (
         <div className="card p-6 mb-8 animate-scale-in border-2 border-primary-500/30">
           <div className="flex items-center justify-between mb-4">
@@ -204,6 +207,7 @@ export function NotesView(props: NavProps) {
                 <label className="label">Title</label>
                 <input
                   type="text"
+                  maxLength={200}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Organic Chemistry Reactions"
@@ -214,6 +218,7 @@ export function NotesView(props: NavProps) {
                 <label className="label">Subject</label>
                 <input
                   type="text"
+                  maxLength={100}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Chemistry"
@@ -226,6 +231,7 @@ export function NotesView(props: NavProps) {
               <label className="label">Tags (comma separated)</label>
               <input
                 type="text"
+                maxLength={200}
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="exam, reactions, chapter4"
@@ -237,6 +243,7 @@ export function NotesView(props: NavProps) {
               <label className="label">Note Content</label>
               <textarea
                 rows={6}
+                maxLength={20000}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Type lecture notes, concepts, and key definitions..."
@@ -256,7 +263,6 @@ export function NotesView(props: NavProps) {
         </div>
       )}
 
-      {/* Notes Grid */}
       {filteredNotes.length === 0 ? (
         <div className="card p-12 text-center">
           <BookMarked className="w-12 h-12 text-neutral-300 dark:text-neutral-700 mx-auto mb-3" />
@@ -342,7 +348,6 @@ export function NotesView(props: NavProps) {
         </div>
       )}
 
-      {/* Interactive Flashcard Modal */}
       <FlashcardsModal
         isOpen={flashcardModalOpen}
         onClose={() => setFlashcardModalOpen(false)}

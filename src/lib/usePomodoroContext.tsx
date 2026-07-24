@@ -51,7 +51,6 @@ export function PomodoroProvider({
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { runningRef.current = running; }, [running]);
 
-  // Adjust secondsLeft when settings change if not currently running
   useEffect(() => {
     if (!running) {
       setSecondsLeft(mode === 'focus' ? focusSeconds : breakSeconds);
@@ -67,30 +66,38 @@ export function PomodoroProvider({
     const minutes = settings.pomodoro_length_minutes;
 
     try {
-      const { data: existing } = await supabase
-        .from('study_logs')
-        .select('*')
-        .eq('date', today)
-        .maybeSingle();
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
 
-      if (existing) {
-        await supabase
+      if (userId) {
+        const { data: existing } = await supabase
           .from('study_logs')
-          .update({
-            minutes_studied: (existing as { minutes_studied: number }).minutes_studied + minutes,
-            pomodoro_count: (existing as { pomodoro_count: number }).pomodoro_count + 1,
-          })
-          .eq('id', (existing as { id: string }).id);
-      } else {
-        await supabase.from('study_logs').insert({
-          task_id: pomodoroTaskId,
-          date: today,
-          minutes_studied: minutes,
-          pomodoro_count: 1,
-        });
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', today)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('study_logs')
+            .update({
+              minutes_studied: (existing as { minutes_studied: number }).minutes_studied + minutes,
+              pomodoro_count: (existing as { pomodoro_count: number }).pomodoro_count + 1,
+            })
+            .eq('id', (existing as { id: string }).id)
+            .eq('user_id', userId);
+        } else {
+          await supabase.from('study_logs').insert({
+            user_id: userId,
+            task_id: pomodoroTaskId,
+            date: today,
+            minutes_studied: minutes,
+            pomodoro_count: 1,
+          });
+        }
       }
     } catch {
-      // Local fallback or ignored error
+      // Local fallback
     }
 
     setCompletedPomodoros((c) => c + 1);
@@ -98,7 +105,6 @@ export function PomodoroProvider({
     toast('success', `🎉 Pomodoro complete! ${minutes} minutes logged.`);
   }, [settings.pomodoro_length_minutes, pomodoroTaskId, onLogAdded, toast]);
 
-  // Main continuous interval timer
   useEffect(() => {
     if (!running) return;
 
@@ -114,7 +120,6 @@ export function PomodoroProvider({
     return () => clearInterval(interval);
   }, [running]);
 
-  // Completion trigger effect
   useEffect(() => {
     if (secondsLeft !== 0 || !running) return;
     const wasFocus = modeRef.current;

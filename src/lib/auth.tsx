@@ -20,6 +20,33 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const DEMO_USER_KEY = 'lumora_demo_user';
+const LOCAL_NOTES_KEY = 'lumora_local_notes_v1';
+const LOCAL_NOTIFS_KEY = 'lumora_notifications_v1';
+
+const ALLOWED_PROFILE_KEYS: (keyof Profile)[] = [
+  'full_name',
+  'grade_level',
+  'school_name',
+  'classes',
+  'avatar_url',
+  'learning_style',
+  'study_goals',
+  'onboarded',
+];
+
+function sanitizeProfilePatch(patch: Partial<Profile>): Partial<Profile> {
+  const clean: Partial<Profile> = {};
+  for (const key of ALLOWED_PROFILE_KEYS) {
+    if (key in patch) {
+      (clean as any)[key] = patch[key];
+    }
+  }
+  return clean;
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -43,16 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Helper to construct a local demo session
   const createDemoSession = (email: string, fullName: string): { session: Session; profile: Profile } => {
     const userId = 'demo-user-id';
     const fakeUser: User = {
       id: userId,
       app_metadata: {},
-      user_metadata: { full_name: fullName },
+      user_metadata: { full_name: fullName.slice(0, 100) },
       aud: 'authenticated',
       created_at: new Date().toISOString(),
-      email,
+      email: email.slice(0, 100),
     };
     const fakeSession: Session = {
       access_token: 'demo-token',
@@ -63,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     const fakeProfile: Profile = {
       id: userId,
-      full_name: fullName || 'Demo Student',
+      full_name: fullName.slice(0, 100) || 'Demo Student',
       grade_level: 'Senior',
       school_name: null,
       classes: ['Calculus', 'Physics', 'Literature'],
@@ -79,7 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      // Check local storage for demo user
       const stored = localStorage.getItem(DEMO_USER_KEY);
       if (stored) {
         try {
@@ -120,10 +145,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile]);
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = fullName.trim().slice(0, 100);
+
+    if (!isValidEmail(cleanEmail)) {
+      return { error: 'Please enter a valid email address.' };
+    }
+    if (password.length < 6 || password.length > 72) {
+      return { error: 'Password must be between 6 and 72 characters.' };
+    }
+
     if (!isSupabaseConfigured) {
-      // Demo mode fallback signup
-      const { session: demoSession, profile: demoProfile } = createDemoSession(email, fullName);
-      demoProfile.onboarded = false; // Trigger onboarding view for new signup
+      const { session: demoSession, profile: demoProfile } = createDemoSession(cleanEmail, cleanName);
+      demoProfile.onboarded = false;
       localStorage.setItem(DEMO_USER_KEY, JSON.stringify({ session: demoSession, profile: demoProfile }));
       setSession(demoSession);
       setProfile(demoProfile);
@@ -132,18 +166,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
-        options: { data: { full_name: fullName } },
+        options: { data: { full_name: cleanName } },
       });
       if (error) return { error: error.message };
 
       if (data.user) {
-        // Create initial profile if trigger hasn't completed
         try {
           await supabase.from('profiles').upsert({
             id: data.user.id,
-            full_name: fullName,
+            full_name: cleanName,
             onboarded: false,
           });
         } catch {}
@@ -151,9 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (err: unknown) {
-      // Fallback to local session on network error/Failed to fetch
       console.warn('Network auth failed, entering demo mode:', err);
-      const { session: demoSession, profile: demoProfile } = createDemoSession(email, fullName);
+      const { session: demoSession, profile: demoProfile } = createDemoSession(cleanEmail, cleanName);
       demoProfile.onboarded = false;
       localStorage.setItem(DEMO_USER_KEY, JSON.stringify({ session: demoSession, profile: demoProfile }));
       setSession(demoSession);
@@ -164,8 +196,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isValidEmail(cleanEmail)) {
+      return { error: 'Please enter a valid email address.' };
+    }
+
     if (!isSupabaseConfigured) {
-      const { session: demoSession, profile: demoProfile } = createDemoSession(email, 'Student');
+      const { session: demoSession, profile: demoProfile } = createDemoSession(cleanEmail, 'Student');
       localStorage.setItem(DEMO_USER_KEY, JSON.stringify({ session: demoSession, profile: demoProfile }));
       setSession(demoSession);
       setProfile(demoProfile);
@@ -173,12 +210,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (error) return { error: error.message };
       return { error: null };
     } catch (err: unknown) {
       console.warn('Sign-in failed, continuing in demo mode:', err);
-      const { session: demoSession, profile: demoProfile } = createDemoSession(email, 'Student');
+      const { session: demoSession, profile: demoProfile } = createDemoSession(cleanEmail, 'Student');
       localStorage.setItem(DEMO_USER_KEY, JSON.stringify({ session: demoSession, profile: demoProfile }));
       setSession(demoSession);
       setProfile(demoProfile);
@@ -188,7 +225,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Clear user-specific storage on sign out
     localStorage.removeItem(DEMO_USER_KEY);
+    localStorage.removeItem(LOCAL_NOTES_KEY);
+    localStorage.removeItem(LOCAL_NOTIFS_KEY);
+
     if (isSupabaseConfigured) {
       await supabase.auth.signOut().catch(() => {});
     }
@@ -197,9 +238,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isValidEmail(cleanEmail)) {
+      return { error: 'Please enter a valid email address.' };
+    }
     if (!isSupabaseConfigured) return { error: null };
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: window.location.origin,
       });
       if (error) return { error: error.message };
@@ -210,6 +255,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePassword = useCallback(async (newPassword: string) => {
+    if (newPassword.length < 6 || newPassword.length > 72) {
+      return { error: 'Password must be between 6 and 72 characters.' };
+    }
     if (!isSupabaseConfigured) return { error: null };
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -220,7 +268,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const updateProfile = useCallback(async (patch: Partial<Profile>) => {
+  const updateProfile = useCallback(async (rawPatch: Partial<Profile>) => {
+    const patch = sanitizeProfilePatch(rawPatch);
     setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
 
     if (isDemo || !session?.user) {
