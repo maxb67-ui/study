@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, CalendarDays, Timer, BookMarked, Lightbulb, UserCircle } from 'lucide-react';
+import { LayoutDashboard, ListTodo, CalendarDays, Timer, BookMarked, Bot, Lightbulb, UserCircle } from 'lucide-react';
 import type { View } from '@/App';
 
 type Props = {
@@ -11,6 +11,7 @@ const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'notes', label: 'Notes', icon: BookMarked },
+  { id: 'tutor', label: 'Tutor', icon: Bot },
   { id: 'pomodoro', label: 'Focus', icon: Timer },
   { id: 'insights', label: 'Insights', icon: Lightbulb },
   { id: 'account', label: 'Account', icon: UserCircle },
