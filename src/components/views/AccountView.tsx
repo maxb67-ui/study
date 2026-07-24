@@ -18,7 +18,7 @@ const GRADE_LEVELS = [
 type SettingsSection = 'profile' | 'study' | 'appearance' | 'notifications' | 'privacy' | 'account';
 
 export function AccountView() {
-  const { user, profile, updateProfile, updatePassword, signOut, refreshProfile } = useAuth();
+  const { user, profile, updateProfile, updatePassword, signOut } = useAuth();
   const { settings, update: updateSettings } = useSettings();
   const toast = useToast();
 
@@ -165,7 +165,7 @@ export function AccountView() {
                 >
                   <Icon className={`w-4 h-4 ${active ? s.color : ''}`} />
                   {s.label}
-                </button> section
+                </button>
               );
             })}
           </div>
