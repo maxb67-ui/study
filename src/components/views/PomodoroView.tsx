@@ -108,21 +108,34 @@ export function PomodoroView(props: NavProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-6">
-          <button onClick={reset} className="btn-secondary p-3" title="Reset">
-            <RotateCcw className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleRunning}
-            className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-soft transition-all active:scale-95 ${
-              mode === 'focus' ? 'bg-primary-500 hover:bg-primary-600' : 'bg-success-500 hover:bg-success-600'
-            }`}
-          >
-            {running ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
-          </button>
-          <button onClick={skip} className="btn-secondary p-3" title="Skip">
-            <SkipForward className="w-5 h-5" />
-          </button>
+        <div className="flex items-center gap-6 mt-8">
+          <div className="flex flex-col items-center gap-2">
+            <button onClick={reset} className="btn-secondary w-12 h-12 rounded-2xl flex items-center justify-center" title="Restart Session">
+              <RotateCcw className="w-5 h-5" />
+            </button>
+            <span className="text-[10px] font-bold text-neutral-400 uppercase">Restart</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={toggleRunning}
+              className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white shadow-lg transition-all active:scale-95 ${
+                mode === 'focus' ? 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/25' : 'bg-success-500 hover:bg-success-600 shadow-success-500/25'
+              }`}
+            >
+              {running ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+            </button>
+            <span className="text-[10px] font-bold text-neutral-900 dark:text-white uppercase tracking-wider">
+              {running ? 'Pause' : 'Resume'}
+            </span>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <button onClick={skip} className="btn-secondary w-12 h-12 rounded-2xl flex items-center justify-center" title="Skip Session">
+              <SkipForward className="w-5 h-5" />
+            </button>
+            <span className="text-[10px] font-bold text-neutral-400 uppercase">Skip</span>
+          </div>
         </div>
       </div>
 

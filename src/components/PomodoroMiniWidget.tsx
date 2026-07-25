@@ -1,9 +1,9 @@
-import { Play, Pause, Maximize2 } from 'lucide-react';
+import { Play, Pause, Maximize2, RotateCcw } from 'lucide-react';
 import { usePomodoro } from '@/lib/usePomodoroContext';
 import type { View } from '@/App';
 
 export function PomodoroMiniWidget({ view, setView }: { view: View; setView: (v: View) => void }) {
-  const { running, secondsLeft, mode, selectedTask, toggleRunning } = usePomodoro();
+  const { running, secondsLeft, mode, selectedTask, toggleRunning, reset } = usePomodoro();
 
   if (view === 'pomodoro' || (!running && secondsLeft === 0)) return null;
 
@@ -29,9 +29,16 @@ export function PomodoroMiniWidget({ view, setView }: { view: View; setView: (v:
         <button
           onClick={toggleRunning}
           className="p-1.5 rounded-lg hover:bg-neutral-700/60 transition-colors text-white"
-          title={running ? 'Pause' : 'Play'}
+          title={running ? 'Pause Timer' : 'Resume Timer'}
         >
           {running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </button>
+        <button
+          onClick={reset}
+          className="p-1.5 rounded-lg hover:bg-neutral-700/60 transition-colors text-neutral-400 hover:text-white"
+          title="Restart Session"
+        >
+          <RotateCcw className="w-4 h-4" />
         </button>
         <button
           onClick={() => setView('pomodoro')}
