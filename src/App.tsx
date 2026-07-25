@@ -77,7 +77,9 @@ function AppContent() {
   }, [user]);
 
   useEffect(() => {
-    if (user && (profile?.onboarded || isDemo)) fetchData();
+    if (user && (profile?.onboarded || isDemo)) {
+      fetchData();
+    }
   }, [user, profile?.onboarded, isDemo, fetchData]);
 
   const handleSaveNote = async (input: NoteInput, id?: string) => {
