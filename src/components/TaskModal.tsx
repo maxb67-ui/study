@@ -71,7 +71,15 @@ export function TaskModal({ task, courses = [], onSave, onClose, saving }: Props
 
     if (!cleanTitle) e.title = 'Title is required';
     if (!cleanSubject) e.subject = 'Subject is required';
-    if (!dueDate) e.dueDate = 'Due date is required';
+    
+    if (!dueDate) {
+      e.dueDate = 'Due date is required';
+    } else {
+      const parsedDate = new Date(dueDate);
+      if (isNaN(parsedDate.getTime())) {
+        e.dueDate = 'Please enter a valid date and time';
+      }
+    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -80,6 +88,13 @@ export function TaskModal({ task, courses = [], onSave, onClose, saving }: Props
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
+
+    const parsedDate = new Date(dueDate);
+    if (isNaN(parsedDate.getTime())) {
+      setErrors((prev) => ({ ...prev, dueDate: 'Please enter a valid date and time' }));
+      return;
+    }
+
     onSave(
       {
         title: title.trim(),
@@ -88,7 +103,7 @@ export function TaskModal({ task, courses = [], onSave, onClose, saving }: Props
         course_id: courseId || null,
         difficulty: Math.min(5, Math.max(1, difficulty)),
         priority: Math.min(5, Math.max(1, priority)),
-        due_date: new Date(dueDate).toISOString(),
+        due_date: parsedDate.toISOString(),
         estimated_hours: Math.min(50, Math.max(0.5, estimatedHours)),
         notes: notes.trim() || null,
       },
@@ -121,6 +136,7 @@ export function TaskModal({ task, courses = [], onSave, onClose, saving }: Props
               placeholder="e.g. Calculus Problem Set 4"
               autoFocus
             />
+            {errors.title && <p className="text-[10px] text-error-500 mt-1">{errors.title}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -145,6 +161,7 @@ export function TaskModal({ task, courses = [], onSave, onClose, saving }: Props
                 onBlur={() => setTimeout(() => setShowSubjectSuggestions(false), 150)}
                 placeholder="e.g. Mathematics"
               />
+              {errors.subject && <p className="text-[10px] text-error-500 mt-1">{errors.subject}</p>}
               {showSubjectSuggestions && subjectSuggestions.length > 0 && (
                 <div className="absolute z-10 left-0 right-0 mt-1 card p-1.5 shadow-lg max-h-40 overflow-y-auto">
                   {subjectSuggestions.map((s) => (
@@ -190,10 +207,11 @@ export function TaskModal({ task, courses = [], onSave, onClose, saving }: Props
               <label className="label">Due Date</label>
               <input
                 type="datetime-local"
-                className="input text-xs"
+                className={`input text-xs ${errors.dueDate ? 'border-error-400 focus:ring-error-400' : ''}`}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
+              {errors.dueDate && <p className="text-[10px] text-error-500 mt-1">{errors.dueDate}</p>}
             </div>
           </div>
 
