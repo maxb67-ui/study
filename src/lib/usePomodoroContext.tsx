@@ -51,11 +51,13 @@ export function PomodoroProvider({
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { runningRef.current = running; }, [running]);
 
+  // Sync timer duration with settings ONLY when idle (not running)
+  // or when explicitly switching modes.
   useEffect(() => {
     if (!running) {
       setSecondsLeft(mode === 'focus' ? focusSeconds : breakSeconds);
     }
-  }, [mode, focusSeconds, breakSeconds, running]);
+  }, [mode, focusSeconds, breakSeconds]);
 
   const selectedTask = useMemo(() => {
     return tasks.find((t) => t.id === pomodoroTaskId) ?? null;
@@ -97,7 +99,7 @@ export function PomodoroProvider({
         }
       }
     } catch {
-      // Local fallback
+      // Local fallback handled by App state
     }
 
     setCompletedPomodoros((c) => c + 1);
