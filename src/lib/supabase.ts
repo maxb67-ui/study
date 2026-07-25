@@ -20,6 +20,16 @@ export const supabase = createClient(safeUrl, safeKey, {
   },
 });
 
+export type UserAcademicGoals = {
+  user_id: string;
+  daily_goal_minutes: number;
+  weekly_goal_hours: number;
+  target_gpa: number;
+  target_completion_rate: number;
+  target_exam_prep_sessions: number;
+  updated_at: string;
+};
+
 export type Course = {
   id: string;
   user_id: string;

@@ -45,12 +45,13 @@ export function useSettings() {
 
   const update = useCallback(async (patch: Partial<Settings>) => {
     if (!session?.user) return;
-    const next = { ...settings, ...patch, updated_at: new Date().toISOString() };
+    const next = { ...settings, ...patch, user_id: session.user.id, updated_at: new Date().toISOString() };
     setSettings(next);
     const { id, user_id, updated_at, ...rest } = next;
     void id;
-    void user_id;
     void updated_at;
+    
+    // Explicit user_id binding in payload
     await supabase
       .from('settings')
       .upsert(

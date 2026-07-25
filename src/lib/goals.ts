@@ -1,4 +1,4 @@
-import type { Task, StudyLog, StudyBlock } from './supabase';
+import type { Task, StudyLog, StudyBlock, UserAcademicGoals } from './supabase';
 import { localDateISO, addDays } from './dates';
 
 export type AcademicGoals = {
@@ -34,10 +34,17 @@ export const DEFAULT_GOALS: AcademicGoals = {
   targetExamPrepSessions: 5,
 };
 
-/**
- * Parses goals from the database-stored profile string.
- * This replaces the previous localStorage implementation for better security.
- */
+export function mapDbToAcademicGoals(row: Partial<UserAcademicGoals> | null): AcademicGoals {
+  if (!row) return DEFAULT_GOALS;
+  return {
+    dailyGoalMinutes: row.daily_goal_minutes ?? DEFAULT_GOALS.dailyGoalMinutes,
+    weeklyGoalHours: row.weekly_goal_hours ?? DEFAULT_GOALS.weeklyGoalHours,
+    targetGpa: row.target_gpa ? Number(row.target_gpa) : DEFAULT_GOALS.targetGpa,
+    targetCompletionRate: row.target_completion_rate ?? DEFAULT_GOALS.targetCompletionRate,
+    targetExamPrepSessions: row.target_exam_prep_sessions ?? DEFAULT_GOALS.targetExamPrepSessions,
+  };
+}
+
 export function parseAcademicGoals(goalsString: string | null): AcademicGoals {
   if (!goalsString) return DEFAULT_GOALS;
   try {
@@ -48,9 +55,6 @@ export function parseAcademicGoals(goalsString: string | null): AcademicGoals {
   }
 }
 
-/**
- * Serializes goals for storage in the Supabase profiles table.
- */
 export function stringifyAcademicGoals(goals: AcademicGoals): string {
   return JSON.stringify(goals);
 }

@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Target, Award, CheckCircle2, TrendingUp, Sparkles, ChevronRight, Edit3, X, Save, Clock, BookOpen } from 'lucide-react';
-import type { Task, StudyLog, StudyBlock } from '@/lib/supabase';
+import type { Task, StudyLog, StudyBlock, UserAcademicGoals } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { View } from '@/App';
-import { parseAcademicGoals, stringifyAcademicGoals, calculateGoalProgress, generateGoalAIRecommendations, type AcademicGoals } from '@/lib/goals';
+import { DEFAULT_GOALS, mapDbToAcademicGoals, calculateGoalProgress, generateGoalAIRecommendations, type AcademicGoals } from '@/lib/goals';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
 
@@ -14,52 +15,84 @@ type Props = {
 };
 
 export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
-  const { profile, updateProfile } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
-  
-  // Use goals from profile for security
-  const goals = useMemo(() => parseAcademicGoals(profile?.study_goals || null), [profile?.study_goals]);
+
+  const [goals, setGoals] = useState<AcademicGoals>(DEFAULT_GOALS);
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Form State
-  const [dailyGoalMinutes, setDailyGoalMinutes] = useState(goals.dailyGoalMinutes);
-  const [weeklyGoalHours, setWeeklyGoalHours] = useState(goals.weeklyGoalHours);
-  const [targetGpa, setTargetGpa] = useState(goals.targetGpa);
-  const [targetCompletionRate, setTargetCompletionRate] = useState(goals.targetCompletionRate);
-  const [targetExamPrepSessions, setTargetExamPrepSessions] = useState(goals.targetExamPrepSessions);
+  const [dailyGoalMinutes, setDailyGoalMinutes] = useState(DEFAULT_GOALS.dailyGoalMinutes);
+  const [weeklyGoalHours, setWeeklyGoalHours] = useState(DEFAULT_GOALS.weeklyGoalHours);
+  const [targetGpa, setTargetGpa] = useState(DEFAULT_GOALS.targetGpa);
+  const [targetCompletionRate, setTargetCompletionRate] = useState(DEFAULT_GOALS.targetCompletionRate);
+  const [targetExamPrepSessions, setTargetExamPrepSessions] = useState(DEFAULT_GOALS.targetExamPrepSessions);
 
-  // Sync form state when goals change (e.g. initial load)
+  // Load goals from isolated user_academic_goals table
+  const fetchGoals = useCallback(async () => {
+    if (!user || !isSupabaseConfigured) return;
+    const { data, error } = await supabase
+      .from('user_academic_goals')
+      .select('daily_goal_minutes, weekly_goal_hours, target_gpa, target_completion_rate, target_exam_prep_sessions')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!error && data) {
+      const parsed = mapDbToAcademicGoals(data as Partial<UserAcademicGoals>);
+      setGoals(parsed);
+      setDailyGoalMinutes(parsed.dailyGoalMinutes);
+      setWeeklyGoalHours(parsed.weeklyGoalHours);
+      setTargetGpa(parsed.targetGpa);
+      setTargetCompletionRate(parsed.targetCompletionRate);
+      setTargetExamPrepSessions(parsed.targetExamPrepSessions);
+    }
+  }, [user]);
+
   useEffect(() => {
-    setDailyGoalMinutes(goals.dailyGoalMinutes);
-    setWeeklyGoalHours(goals.weeklyGoalHours);
-    setTargetGpa(goals.targetGpa);
-    setTargetCompletionRate(goals.targetCompletionRate);
-    setTargetExamPrepSessions(goals.targetExamPrepSessions);
-  }, [goals]);
+    fetchGoals();
+  }, [fetchGoals]);
 
   const progress = calculateGoalProgress(goals, tasks, logs, blocks);
   const recommendations = generateGoalAIRecommendations(goals, progress, tasks);
 
   async function handleSave() {
-    const updated: AcademicGoals = {
+    if (!user) return;
+    setSaving(true);
+
+    const payload = {
+      user_id: user.id,
+      daily_goal_minutes: dailyGoalMinutes,
+      weekly_goal_hours: weeklyGoalHours,
+      target_gpa: targetGpa,
+      target_completion_rate: targetCompletionRate,
+      target_exam_prep_sessions: targetExamPrepSessions,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_academic_goals')
+        .upsert(payload, { onConflict: 'user_id' });
+
+      if (error) {
+        toast('error', 'Failed to save academic goals');
+        setSaving(false);
+        return;
+      }
+    }
+
+    const nextGoals: AcademicGoals = {
       dailyGoalMinutes,
       weeklyGoalHours,
       targetGpa,
       targetCompletionRate,
       targetExamPrepSessions,
     };
-
-    // SECURITY FIX: Move goals to database instead of localStorage
-    const { error } = await updateProfile({
-      study_goals: stringifyAcademicGoals(updated)
-    });
-
-    if (error) {
-      toast('error', 'Failed to save academic goals to database');
-    } else {
-      setIsEditing(false);
-      toast('success', 'Academic goals secured in your profile!');
-    }
+    setGoals(nextGoals);
+    setIsEditing(false);
+    setSaving(false);
+    toast('success', 'Academic goals securely saved!');
   }
 
   return (
@@ -265,8 +298,8 @@ export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
 
             <div className="flex justify-end gap-2 pt-3 border-t border-neutral-200 dark:border-neutral-800">
               <button onClick={() => setIsEditing(false)} className="btn-secondary">Cancel</button>
-              <button onClick={handleSave} className="btn-primary">
-                <Save className="w-4 h-4" /> Save Goals
+              <button onClick={handleSave} disabled={saving} className="btn-primary">
+                <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Goals'}
               </button>
             </div>
           </div>
