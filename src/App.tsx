@@ -31,7 +31,7 @@ const CoursesView = lazy(() => import('./components/views/CoursesView').then(m =
 export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'tutor' | 'achievements' | 'insights' | 'account' | 'courses';
 
 function AppContent() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, isDemo } = useAuth();
   const { settings, update: updateSettings } = useSettings();
   const toast = useToast();
   
@@ -78,7 +78,7 @@ function AppContent() {
 
   useEffect(() => {
     if (user && (profile?.onboarded || isDemo)) fetchData();
-  }, [user, profile?.onboarded, fetchData]);
+  }, [user, profile?.onboarded, isDemo, fetchData]);
 
   const handleSaveNote = async (input: NoteInput, id?: string) => {
     if (!user) return;
