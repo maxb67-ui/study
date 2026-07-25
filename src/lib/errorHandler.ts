@@ -1,7 +1,5 @@
 "use client";
 
-import { encryptData, decryptData } from './crypto';
-
 export type ErrorLogEntry = {
   id: string;
   timestamp: string;
@@ -25,8 +23,8 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
     { regex: /bearer\s+[a-zA-Z0-9._~+/-]+=*/gi, replacement: 'Bearer [TOKEN_REDACTED]' },
     { regex: /(password|secret|token|key|api_key|auth|session|cookie)=[^&\s,)]+/gi, replacement: '$1=[REDACTED]' },
     { regex: /sb-[a-zA-Z0-9_-]{20,}/g, replacement: '[SUPABASE_TOKEN_REDACTED]' },
-    { regex: /\b(?:\d[ -]*?){13,16}\b/g, replacement: '[CARD_REDACTED]' }, // Basic credit card pattern
-    { regex: /\b(?:\+?\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}\b/g, replacement: '[PHONE_REDACTED]' } // Phone numbers
+    { regex: /\b(?:\d[ -]*?){13,16}\b/g, replacement: '[CARD_REDACTED]' },
+    { regex: /\b(?:\+?\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}\b/g, replacement: '[PHONE_REDACTED]' }
   ];
 
   let sanitizedMessage = rawMessage;
@@ -47,15 +45,13 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
   // Always log to console for developers
   console.error(`[Lumora Error]${context ? ` [${context}]` : ''}:`, error);
 
-  // SECURITY FIX: Only persist logs to localStorage in development mode.
-  // In production, we avoid storing potentially sensitive diagnostic data on the user's device.
+  // SECURITY: Only persist logs to localStorage in development mode.
   if (!IS_PROD) {
     try {
       const existingRaw = localStorage.getItem(ERROR_LOG_KEY);
-      const dummyKey = 'lumora_system_diagnostic'; 
-      const existing: ErrorLogEntry[] = existingRaw ? (decryptData(existingRaw, dummyKey) || []) : [];
+      const existing: ErrorLogEntry[] = existingRaw ? JSON.parse(existingRaw) : [];
       const updated = [entry, ...existing].slice(0, 10);
-      localStorage.setItem(ERROR_LOG_KEY, encryptData(updated, dummyKey));
+      localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(updated));
     } catch (e) {}
   }
 
@@ -63,12 +59,11 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
 }
 
 export function getErrorLogs(): ErrorLogEntry[] {
-  // If in production, we don't have local logs
   if (IS_PROD) return [];
   
   try {
     const raw = localStorage.getItem(ERROR_LOG_KEY);
-    return raw ? (decryptData(raw, 'lumora_system_diagnostic') || []) : [];
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }

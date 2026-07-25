@@ -51,7 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async (userId: string) => {
     if (!isSupabaseConfigured) return;
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, grade_level, school_name, classes, avatar_url, learning_style, study_goals, onboarded')
+        .eq('id', userId)
+        .maybeSingle();
       if (!error && data) setProfile(data as Profile);
     } catch (e) {
       console.warn('Profile load failed', e);

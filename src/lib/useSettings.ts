@@ -30,7 +30,7 @@ export function useSettings() {
     }
     const { data } = await supabase
       .from('settings')
-      .select('*')
+      .select('id, user_id, dark_mode, daily_goal_minutes, study_start_time, study_end_time, break_duration_minutes, pomodoro_length_minutes, reminders_enabled')
       .eq('user_id', session.user.id)
       .maybeSingle();
     if (data) {

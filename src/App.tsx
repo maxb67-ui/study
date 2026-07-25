@@ -60,18 +60,33 @@ function AppContent() {
       { data: notesData },
       { data: coursesData }
     ] = await Promise.all([
-      supabase.from('tasks').select('*').eq('user_id', user.id).order('due_date', { ascending: true }),
-      supabase.from('study_blocks').select('*').eq('user_id', user.id).order('scheduled_date', { ascending: true }),
-      supabase.from('study_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-      supabase.from('notes').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
-      supabase.from('courses').select('*').eq('user_id', user.id).order('name', { ascending: true })
+      supabase.from('tasks')
+        .select('id, course_id, title, type, subject, difficulty, priority, due_date, estimated_hours, completed, notes, created_at')
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: true }),
+      supabase.from('study_blocks')
+        .select('id, task_id, scheduled_date, start_time, duration_minutes, completed')
+        .eq('user_id', user.id)
+        .order('scheduled_date', { ascending: true }),
+      supabase.from('study_logs')
+        .select('id, task_id, date, minutes_studied, pomodoro_count')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false }),
+      supabase.from('notes')
+        .select('id, title, subject, content, tags, updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false }),
+      supabase.from('courses')
+        .select('id, name, teacher, schedule, color')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true })
     ]);
 
-    if (tasksData) setTasks(tasksData);
-    if (blocksData) setBlocks(blocksData);
-    if (logsData) setLogs(logsData);
-    if (notesData) setNotes(notesData);
-    if (coursesData) setCourses(coursesData);
+    if (tasksData) setTasks(tasksData as Task[]);
+    if (blocksData) setBlocks(blocksData as StudyBlock[]);
+    if (logsData) setLogs(logsData as StudyLog[]);
+    if (notesData) setNotes(notesData as Note[]);
+    if (coursesData) setCourses(coursesData as Course[]);
     
     setLoading(false);
   }, [user]);
@@ -178,9 +193,12 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      supabase.from('tasks').select('*').eq('user_id', user.id).then(({ data }) => { 
-        if (data) setTasks(data); 
-      });
+      supabase.from('tasks')
+        .select('id, course_id, title, type, subject, difficulty, priority, due_date, estimated_hours, completed, notes, created_at')
+        .eq('user_id', user.id)
+        .then(({ data }) => { 
+          if (data) setTasks(data as Task[]); 
+        });
     }
   }, [user]);
 
