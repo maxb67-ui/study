@@ -10,6 +10,7 @@ export type ErrorLogEntry = {
 };
 
 const ERROR_LOG_KEY = 'lumora_error_logs_v1';
+const IS_PROD = import.meta.env.PROD;
 
 /**
  * Logs errors locally for diagnostic review.
@@ -18,11 +19,14 @@ const ERROR_LOG_KEY = 'lumora_error_logs_v1';
 export function logError(error: unknown, context?: string): ErrorLogEntry {
   const rawMessage = error instanceof Error ? error.message : String(error);
   
+  // Enhanced redaction patterns for PII and secrets
   const patterns = [
     { regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: '[EMAIL_REDACTED]' },
     { regex: /bearer\s+[a-zA-Z0-9._~+/-]+=*/gi, replacement: 'Bearer [TOKEN_REDACTED]' },
-    { regex: /(password|secret|token|key|api_key|auth)=[^&\s,)]+/gi, replacement: '$1=[REDACTED]' },
-    { regex: /sb-[a-zA-Z0-9_-]{20,}/g, replacement: '[SUPABASE_TOKEN_REDACTED]' }
+    { regex: /(password|secret|token|key|api_key|auth|session|cookie)=[^&\s,)]+/gi, replacement: '$1=[REDACTED]' },
+    { regex: /sb-[a-zA-Z0-9_-]{20,}/g, replacement: '[SUPABASE_TOKEN_REDACTED]' },
+    { regex: /\b(?:\d[ -]*?){13,16}\b/g, replacement: '[CARD_REDACTED]' }, // Basic credit card pattern
+    { regex: /\b(?:\+?\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}\b/g, replacement: '[PHONE_REDACTED]' } // Phone numbers
   ];
 
   let sanitizedMessage = rawMessage;
@@ -40,21 +44,28 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
     context: sanitizedContext || undefined,
   };
 
+  // Always log to console for developers
   console.error(`[Lumora Error]${context ? ` [${context}]` : ''}:`, error);
 
-  try {
-    const existingRaw = localStorage.getItem(ERROR_LOG_KEY);
-    // Use a generic key or system ID for logs as user may not be logged in
-    const dummyKey = 'lumora_system_diagnostic'; 
-    const existing: ErrorLogEntry[] = existingRaw ? (decryptData(existingRaw, dummyKey) || []) : [];
-    const updated = [entry, ...existing].slice(0, 10);
-    localStorage.setItem(ERROR_LOG_KEY, encryptData(updated, dummyKey));
-  } catch (e) {}
+  // SECURITY FIX: Only persist logs to localStorage in development mode.
+  // In production, we avoid storing potentially sensitive diagnostic data on the user's device.
+  if (!IS_PROD) {
+    try {
+      const existingRaw = localStorage.getItem(ERROR_LOG_KEY);
+      const dummyKey = 'lumora_system_diagnostic'; 
+      const existing: ErrorLogEntry[] = existingRaw ? (decryptData(existingRaw, dummyKey) || []) : [];
+      const updated = [entry, ...existing].slice(0, 10);
+      localStorage.setItem(ERROR_LOG_KEY, encryptData(updated, dummyKey));
+    } catch (e) {}
+  }
 
   return entry;
 }
 
 export function getErrorLogs(): ErrorLogEntry[] {
+  // If in production, we don't have local logs
+  if (IS_PROD) return [];
+  
   try {
     const raw = localStorage.getItem(ERROR_LOG_KEY);
     return raw ? (decryptData(raw, 'lumora_system_diagnostic') || []) : [];

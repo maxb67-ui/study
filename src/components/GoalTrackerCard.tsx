@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Target, Award, CheckCircle2, TrendingUp, Sparkles, ChevronRight, Edit3, X, Save, Clock, BookOpen } from 'lucide-react';
 import type { Task, StudyLog, StudyBlock } from '@/lib/supabase';
 import type { View } from '@/App';
-import { getAcademicGoals, saveAcademicGoals, calculateGoalProgress, generateGoalAIRecommendations, type AcademicGoals } from '@/lib/goals';
+import { parseAcademicGoals, stringifyAcademicGoals, calculateGoalProgress, generateGoalAIRecommendations, type AcademicGoals } from '@/lib/goals';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
 
@@ -14,11 +14,11 @@ type Props = {
 };
 
 export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
-  const { user } = useAuth();
+  const { profile, updateProfile } = useAuth();
   const toast = useToast();
   
-  const initialGoals = useMemo(() => getAcademicGoals(user?.id || ''), [user?.id]);
-  const [goals, setGoals] = useState<AcademicGoals>(initialGoals);
+  // Use goals from profile for security
+  const goals = useMemo(() => parseAcademicGoals(profile?.study_goals || null), [profile?.study_goals]);
   const [isEditing, setIsEditing] = useState(false);
 
   // Form State
@@ -28,11 +28,19 @@ export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
   const [targetCompletionRate, setTargetCompletionRate] = useState(goals.targetCompletionRate);
   const [targetExamPrepSessions, setTargetExamPrepSessions] = useState(goals.targetExamPrepSessions);
 
+  // Sync form state when goals change (e.g. initial load)
+  useEffect(() => {
+    setDailyGoalMinutes(goals.dailyGoalMinutes);
+    setWeeklyGoalHours(goals.weeklyGoalHours);
+    setTargetGpa(goals.targetGpa);
+    setTargetCompletionRate(goals.targetCompletionRate);
+    setTargetExamPrepSessions(goals.targetExamPrepSessions);
+  }, [goals]);
+
   const progress = calculateGoalProgress(goals, tasks, logs, blocks);
   const recommendations = generateGoalAIRecommendations(goals, progress, tasks);
 
-  function handleSave() {
-    if (!user?.id) return;
+  async function handleSave() {
     const updated: AcademicGoals = {
       dailyGoalMinutes,
       weeklyGoalHours,
@@ -40,10 +48,18 @@ export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
       targetCompletionRate,
       targetExamPrepSessions,
     };
-    setGoals(updated);
-    saveAcademicGoals(user.id, updated);
-    setIsEditing(false);
-    toast('success', 'Academic goals updated successfully!');
+
+    // SECURITY FIX: Move goals to database instead of localStorage
+    const { error } = await updateProfile({
+      study_goals: stringifyAcademicGoals(updated)
+    });
+
+    if (error) {
+      toast('error', 'Failed to save academic goals to database');
+    } else {
+      setIsEditing(false);
+      toast('success', 'Academic goals secured in your profile!');
+    }
   }
 
   return (

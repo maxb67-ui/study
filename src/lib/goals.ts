@@ -1,6 +1,5 @@
 import type { Task, StudyLog, StudyBlock } from './supabase';
 import { localDateISO, addDays } from './dates';
-import { encryptData, decryptData } from './crypto';
 
 export type AcademicGoals = {
   dailyGoalMinutes: number;
@@ -27,8 +26,6 @@ export type GoalRecommendation = {
   metricTag: string;
 };
 
-const BASE_STORAGE_KEY = 'lumora_academic_goals_v1';
-
 export const DEFAULT_GOALS: AcademicGoals = {
   dailyGoalMinutes: 120,
   weeklyGoalHours: 14,
@@ -37,31 +34,25 @@ export const DEFAULT_GOALS: AcademicGoals = {
   targetExamPrepSessions: 5,
 };
 
-export function getAcademicGoals(userId: string): AcademicGoals {
-  if (!userId) return DEFAULT_GOALS;
+/**
+ * Parses goals from the database-stored profile string.
+ * This replaces the previous localStorage implementation for better security.
+ */
+export function parseAcademicGoals(goalsString: string | null): AcademicGoals {
+  if (!goalsString) return DEFAULT_GOALS;
   try {
-    const saved = localStorage.getItem(`${BASE_STORAGE_KEY}_${userId}`);
-    if (saved) {
-      const decrypted = decryptData(saved, userId);
-      return decrypted ? { ...DEFAULT_GOALS, ...decrypted } : DEFAULT_GOALS;
-    }
-  } catch {}
-  return DEFAULT_GOALS;
+    const parsed = JSON.parse(goalsString);
+    return { ...DEFAULT_GOALS, ...parsed };
+  } catch {
+    return DEFAULT_GOALS;
+  }
 }
 
-export function saveAcademicGoals(userId: string, goals: AcademicGoals): void {
-  if (!userId) return;
-  try {
-    const encrypted = encryptData(goals, userId);
-    localStorage.setItem(`${BASE_STORAGE_KEY}_${userId}`, encrypted);
-  } catch {}
-}
-
-export function clearAcademicGoals(userId: string): void {
-  if (!userId) return;
-  try {
-    localStorage.removeItem(`${BASE_STORAGE_KEY}_${userId}`);
-  } catch {}
+/**
+ * Serializes goals for storage in the Supabase profiles table.
+ */
+export function stringifyAcademicGoals(goals: AcademicGoals): string {
+  return JSON.stringify(goals);
 }
 
 export function calculateGoalProgress(
