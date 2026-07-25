@@ -16,7 +16,7 @@ export const supabase = createClient(safeUrl, safeKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'implicit',
+    flowType: 'pkce',
   },
 });
 
@@ -26,8 +26,8 @@ export type Course = {
   name: string;
   color: string;
   teacher: string | null;
-  schedule: string | null; // e.g. "Mon, Wed 10:00 AM"
-  grading_weights: Record<string, number> | null; // e.g. {"Exams": 40, "Homework": 60}
+  schedule: string | null;
+  grading_weights: Record<string, number> | null;
   syllabus_url: string | null;
   created_at: string;
 };
@@ -39,8 +39,8 @@ export type Task = {
   title: string;
   type: 'homework' | 'assignment' | 'project' | 'quiz' | 'exam' | 'deadline';
   subject: string;
-  difficulty: number; // 1-5
-  priority: number; // 1-5
+  difficulty: number;
+  priority: number;
   due_date: string;
   estimated_hours: number;
   completed: boolean;
@@ -63,8 +63,8 @@ export type StudyBlock = {
   id: string;
   user_id: string;
   task_id: string;
-  scheduled_date: string; // YYYY-MM-DD
-  start_time: string; // HH:MM:SS
+  scheduled_date: string;
+  start_time: string;
   duration_minutes: number;
   completed: boolean;
   created_at: string;
@@ -74,7 +74,7 @@ export type StudyLog = {
   id: string;
   user_id: string;
   task_id: string | null;
-  date: string; // YYYY-MM-DD
+  date: string;
   minutes_studied: number;
   pomodoro_count: number;
   created_at: string;

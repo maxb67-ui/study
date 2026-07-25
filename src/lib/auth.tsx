@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured, type Profile } from './supabase';
+import { clearSavedNotifications } from './notifications';
+import { clearErrorLogs } from './errorHandler';
 
 type AuthContextValue = {
   session: Session | null;
@@ -24,13 +26,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const DEMO_USER_KEY = 'lumora_demo_user';
 const IS_PROD = import.meta.env.PROD;
 
+function clearAllUserData(): void {
+  try {
+    localStorage.removeItem(DEMO_USER_KEY);
+    localStorage.removeItem('lumora_academic_goals_v1');
+    localStorage.removeItem('lumora_unlocked_achievements_v1');
+    clearSavedNotifications();
+    clearErrorLogs();
+  } catch {}
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Disable demo mode in production to prevent insecure local storage of PII
-  const [isDemo, setIsDemo] = useState(!isSupabaseConfigured && !IS_PROD);
+
+  const [isDemo] = useState(!isSupabaseConfigured && !IS_PROD);
 
   const loadProfile = useCallback(async (userId: string) => {
     if (!isSupabaseConfigured) return;
@@ -79,8 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     if (!isSupabaseConfigured) return { error: IS_PROD ? 'Database not configured' : null };
-    const { data, error } = await supabase.auth.signUp({
-      email, password, options: { data: { full_name: fullName } }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } },
     });
     if (error) return { error: error.message };
     return { error: null };
@@ -93,16 +106,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    localStorage.removeItem(DEMO_USER_KEY);
+    clearAllUserData();
     if (isSupabaseConfigured) await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    if (!isSupabaseConfigured) return { error: IS_PROD ? 'Database not configured' : null };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}`,
+    });
+    return { error: error?.message || null };
+  }, []);
+
   const updatePassword = useCallback(async (newPassword: string, currentPassword?: string) => {
     if (!isSupabaseConfigured) return { error: 'Not supported in demo mode' };
-    
-    // For high security, we should re-authenticate before password change
+
     if (currentPassword && session?.user?.email) {
       const { error: reauthError } = await supabase.auth.signInWithPassword({
         email: session.user.email,
@@ -117,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(async (patch: Partial<Profile>) => {
     if (isDemo) {
-      setProfile(p => p ? { ...p, ...patch } : null);
+      setProfile((p) => (p ? { ...p, ...patch } : null));
       return { error: null };
     }
     if (!session?.user) return { error: 'No session' };
@@ -126,10 +146,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null };
   }, [session, isDemo, loadProfile]);
 
+  const refreshProfile = useCallback(async () => {
+    if (session?.user) await loadProfile(session.user.id);
+  }, [session, loadProfile]);
+
   const value = {
-    session, user: session?.user ?? null, profile, loading, isDemo,
-    signUp, signIn, signOut, resetPassword: async (e: string) => ({ error: null }), 
-    updatePassword, updateProfile, refreshProfile: async () => {}
+    session,
+    user: session?.user ?? null,
+    profile,
+    loading,
+    isDemo,
+    signUp,
+    signIn,
+    signOut,
+    resetPassword,
+    updatePassword,
+    updateProfile,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

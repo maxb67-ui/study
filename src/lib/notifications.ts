@@ -15,7 +15,7 @@ export type AppNotification = {
 };
 
 export type NotificationPreferences = {
-  advanceMinutes: number; // e.g. 15, 30, 60, 1440 (1 day)
+  advanceMinutes: number;
   notifyExams: boolean;
   notifyAssignments: boolean;
   notifySessions: boolean;
@@ -61,7 +61,14 @@ export function getSavedNotifications(): AppNotification[] {
 
 export function saveNotifications(notifs: AppNotification[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(notifs.slice(0, 50))); // limit to 50
+    localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(notifs.slice(0, 50)));
+  } catch {}
+}
+
+export function clearSavedNotifications(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY_NOTIFS);
+    localStorage.removeItem(STORAGE_KEY_PREFS);
   } catch {}
 }
 
@@ -99,7 +106,6 @@ export function scanForReminders(
   const today = new Date();
   const todayISO = localDateISO(today);
 
-  // 1. Scheduled Study Sessions Today
   if (prefs.notifySessions) {
     const todayBlocks = blocks.filter((b) => b.scheduled_date === todayISO && !b.completed);
     for (const b of todayBlocks) {
@@ -124,7 +130,6 @@ export function scanForReminders(
     }
   }
 
-  // 2. Upcoming Exams (Notice: 1-2 days)
   if (prefs.notifyExams) {
     const exams = tasks.filter((t) => !t.completed && t.type === 'exam');
     for (const exam of exams) {
@@ -151,7 +156,6 @@ export function scanForReminders(
     }
   }
 
-  // 3. High-Priority Incomplete Tasks
   if (prefs.notifyHighPriority) {
     const highTasks = tasks.filter((t) => !t.completed && t.priority >= 4);
     for (const t of highTasks) {
@@ -173,7 +177,6 @@ export function scanForReminders(
     }
   }
 
-  // 4. Overdue Tasks
   if (prefs.notifyOverdue) {
     const overdue = tasks.filter((t) => !t.completed && localDateISO(new Date(t.due_date)) < todayISO);
     if (overdue.length > 0) {
