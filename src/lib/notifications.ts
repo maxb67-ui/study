@@ -1,7 +1,7 @@
 import type { Task, StudyBlock, Settings } from './supabase';
 import { localDateISO, daysBetween } from './dates';
 
-export type ReminderType = 'session' | 'exam' | 'assignment' | 'overdue';
+export type ReminderType = 'session' | 'exam' | 'assignment' | 'overdue' | 'task_high';
 
 export type AppNotification = {
   id: string;
@@ -20,6 +20,7 @@ export type NotificationPreferences = {
   notifyAssignments: boolean;
   notifySessions: boolean;
   notifyOverdue: boolean;
+  notifyHighPriority: boolean;
   browserNotifications: boolean;
 };
 
@@ -32,13 +33,14 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
   notifyAssignments: true,
   notifySessions: true,
   notifyOverdue: true,
+  notifyHighPriority: true,
   browserNotifications: false,
 };
 
 export function getNotificationPrefs(): NotificationPreferences {
   try {
     const saved = localStorage.getItem(STORAGE_KEY_PREFS);
-    if (saved) return JSON.parse(saved);
+    if (saved) return { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(saved) };
   } catch {}
   return DEFAULT_NOTIFICATION_PREFS;
 }
@@ -117,10 +119,7 @@ export function scanForReminders(
           taskId: b.task_id,
         };
         newNotifs.push(item);
-
-        if (prefs.browserNotifications) {
-          triggerBrowserNotification(title, msg);
-        }
+        if (prefs.browserNotifications) triggerBrowserNotification(title, msg);
       }
     }
   }
@@ -146,37 +145,30 @@ export function scanForReminders(
             taskId: exam.id,
           };
           newNotifs.push(item);
-
-          if (prefs.browserNotifications) {
-            triggerBrowserNotification(title, msg);
-          }
+          if (prefs.browserNotifications) triggerBrowserNotification(title, msg);
         }
       }
     }
   }
 
-  // 3. Upcoming Assignments Due Soon
-  if (prefs.notifyAssignments) {
-    const upcomingTasks = tasks.filter((t) => !t.completed && t.type !== 'exam');
-    for (const t of upcomingTasks) {
-      const daysLeft = daysBetween(today, new Date(t.due_date));
-      if (daysLeft === 0 || daysLeft === 1) {
-        const id = `task-due-${t.id}-${daysLeft}d`;
-        if (!existingIds.has(id)) {
-          const title = `Task Due Soon: ${t.title}`;
-          const msg = `${t.subject} · Due ${daysLeft === 0 ? 'today' : 'tomorrow'}`;
-          const item: AppNotification = {
-            id,
-            type: 'assignment',
-            title,
-            message: msg,
-            timestamp: new Date().toISOString(),
-            read: false,
-            actionView: 'tasks',
-            taskId: t.id,
-          };
-          newNotifs.push(item);
-        }
+  // 3. High-Priority Incomplete Tasks
+  if (prefs.notifyHighPriority) {
+    const highTasks = tasks.filter((t) => !t.completed && t.priority >= 4);
+    for (const t of highTasks) {
+      const id = `high-task-${t.id}-${todayISO}`;
+      if (!existingIds.has(id)) {
+        const title = 'Priority Task Reminder';
+        const msg = `Don't forget to work on "${t.title}". It's marked as high priority.`;
+        newNotifs.push({
+          id,
+          type: 'task_high',
+          title,
+          message: msg,
+          timestamp: new Date().toISOString(),
+          read: false,
+          actionView: 'tasks',
+          taskId: t.id,
+        });
       }
     }
   }
@@ -189,7 +181,7 @@ export function scanForReminders(
       if (!existingIds.has(id)) {
         const title = '⚠️ Overdue Items Warning';
         const msg = `You have ${overdue.length} overdue item${overdue.length > 1 ? 's' : ''} needing attention.`;
-        const item: AppNotification = {
+        newNotifs.push({
           id,
           type: 'overdue',
           title,
@@ -197,8 +189,7 @@ export function scanForReminders(
           timestamp: new Date().toISOString(),
           read: false,
           actionView: 'tasks',
-        };
-        newNotifs.push(item);
+        });
       }
     }
   }
@@ -206,7 +197,6 @@ export function scanForReminders(
   if (newNotifs.length > 0) {
     const combined = [...newNotifs, ...existing];
     saveNotifications(combined);
-    // Notify via toast
     showToast('info', `🔔 ${newNotifs.length} new study reminder${newNotifs.length > 1 ? 's' : ''}`);
     return combined;
   }

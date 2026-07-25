@@ -147,7 +147,6 @@ export function AccountView() {
       <PageHeader title="Settings" subtitle="Manage your academic profile and application preferences" />
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Navigation Sidebar */}
         <aside className="w-full lg:w-64 shrink-0">
           <div className="flex lg:flex-col overflow-x-auto no-scrollbar gap-1 bg-neutral-100/50 dark:bg-neutral-800/30 p-1 rounded-2xl">
             {sections.map((s) => {
@@ -169,19 +168,8 @@ export function AccountView() {
               );
             })}
           </div>
-
-          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary-500/10 to-indigo-500/10 border border-primary-500/20 hidden lg:block">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-primary-500" />
-              <span className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-wider">Pro Tip</span>
-            </div>
-            <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Tailoring your learning style and study window helps our AI generate more effective schedules for your routine.
-            </p>
-          </div>
         </aside>
 
-        {/* Content Area */}
         <div className="flex-1 space-y-6 animate-fade-in" key={activeSection}>
           {activeSection === 'profile' && (
             <div className="space-y-6">
@@ -234,7 +222,7 @@ export function AccountView() {
                       value={studyGoals} 
                       onChange={(e) => setStudyGoals(e.target.value)} 
                       className="input min-h-[100px] resize-none" 
-                      placeholder="e.g. Maintain 4.0 GPA, master Calculus III..." 
+                      placeholder="e.g. Maintain 4.0 GPA..." 
                     />
                   </div>
                   <div>
@@ -244,7 +232,6 @@ export function AccountView() {
                         type="text" 
                         value={newClass} 
                         onChange={(e) => setNewClass(e.target.value)} 
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), setClasses([...classes, newClass]), setNewClass(''))}
                         className="input" 
                         placeholder="Add a class..." 
                       />
@@ -270,7 +257,7 @@ export function AccountView() {
               <div className="flex justify-end">
                 <button onClick={handleSaveProfile} disabled={savingProfile} className="btn-primary px-8">
                   {savingProfile ? <Clock className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save Profile Changes
+                  Save Changes
                 </button>
               </div>
             </div>
@@ -284,8 +271,8 @@ export function AccountView() {
                     <Target className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-neutral-900 dark:text-white">Planning Algorithms</h3>
-                    <p className="text-xs text-neutral-500">Configure how Lumora generates your daily schedule</p>
+                    <h3 className="font-bold text-neutral-900 dark:text-white">Planning & Goals</h3>
+                    <p className="text-xs text-neutral-500">Configure your study window and session lengths</p>
                   </div>
                 </div>
 
@@ -308,18 +295,12 @@ export function AccountView() {
                       <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="input" />
                     </div>
                     <div>
-                      <label className="label">Pomodoro Duration</label>
-                      <div className="flex items-center gap-3">
-                        <input type="number" value={pomoLen} onChange={(e) => setPomoLen(Number(e.target.value))} className="input" />
-                        <span className="text-xs font-bold text-neutral-400">min</span>
-                      </div>
+                      <label className="label">Pomodoro Duration (min)</label>
+                      <input type="number" value={pomoLen} onChange={(e) => setPomoLen(Number(e.target.value))} className="input" />
                     </div>
                     <div>
-                      <label className="label">Break Duration</label>
-                      <div className="flex items-center gap-3">
-                        <input type="number" value={breakDur} onChange={(e) => setBreakDur(Number(e.target.value))} className="input" />
-                        <span className="text-xs font-bold text-neutral-400">min</span>
-                      </div>
+                      <label className="label">Break Duration (min)</label>
+                      <input type="number" value={breakDur} onChange={(e) => setBreakDur(Number(e.target.value))} className="input" />
                     </div>
                   </div>
                 </div>
@@ -327,8 +308,7 @@ export function AccountView() {
 
               <div className="flex justify-end">
                 <button onClick={handleSaveStudy} disabled={savingStudy} className="btn-primary px-8">
-                  {savingStudy ? <Clock className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Update Preferences
+                  <Save className="w-4 h-4" /> Save Preferences
                 </button>
               </div>
             </div>
@@ -339,20 +319,19 @@ export function AccountView() {
               <h3 className="font-bold text-neutral-900 dark:text-white mb-4">Interface Theme</h3>
               <div className="grid sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'light', label: 'Light Mode', icon: Sun, val: false },
-                  { id: 'dark', label: 'Dark Mode', icon: Moon, val: true },
-                  { id: 'system', label: 'System', icon: Monitor, val: 'system' },
+                  { id: 'light', label: 'Light', icon: Sun, val: false },
+                  { id: 'dark', label: 'Dark', icon: Moon, val: true },
                 ].map(theme => (
                   <button
                     key={theme.id}
-                    onClick={() => updateSettings({ dark_mode: theme.val === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : theme.val as boolean })}
+                    onClick={() => updateSettings({ dark_mode: theme.val })}
                     className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all ${
-                      (theme.val === 'system' ? false : settings.dark_mode === theme.val)
+                      settings.dark_mode === theme.val
                         ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-950/20'
                         : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
                     }`}
                   >
-                    <theme.icon className={`w-8 h-8 ${ (theme.val === 'system' ? false : settings.dark_mode === theme.val) ? 'text-primary-500' : 'text-neutral-400'}`} />
+                    <theme.icon className={`w-8 h-8 ${settings.dark_mode === theme.val ? 'text-primary-500' : 'text-neutral-400'}`} />
                     <span className="text-sm font-bold">{theme.label}</span>
                   </button>
                 ))}
@@ -361,104 +340,40 @@ export function AccountView() {
           )}
 
           {activeSection === 'notifications' && (
-            <div className="space-y-6">
-              <div className="card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="font-bold text-neutral-900 dark:text-white">Push Notifications</h3>
-                    <p className="text-xs text-neutral-500">Receive alerts directly in your browser</p>
-                  </div>
-                  <button
-                    onClick={handleToggleBrowserNotifs}
-                    className={`w-12 h-6 rounded-full relative transition-colors ${notifPrefs.browserNotifications ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${notifPrefs.browserNotifications ? 'left-7' : 'left-1'}`} />
-                  </button>
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-bold text-neutral-900 dark:text-white">Study Reminders</h3>
+                  <p className="text-xs text-neutral-500">Configure how and when you want to be alerted</p>
                 </div>
-
-                <div className="space-y-4">
-                  <label className="label">Reminder Timing</label>
-                  <select 
-                    value={notifPrefs.advanceMinutes} 
-                    onChange={(e) => updateNotifPref('advanceMinutes', Number(e.target.value))}
-                    className="input"
-                  >
-                    <option value={15}>15 minutes before session</option>
-                    <option value={30}>30 minutes before session</option>
-                    <option value={60}>1 hour before session</option>
-                    <option value={1440}>1 day before deadline</option>
-                  </select>
-
-                  <div className="pt-4 space-y-3">
-                    {[
-                      { key: 'notifyExams', label: 'Upcoming Exams & Tests', desc: 'Critical alerts 48h before exams' },
-                      { key: 'notifyAssignments', label: 'Assignment Deadlines', desc: 'Daily reminders for due items' },
-                      { key: 'notifySessions', label: 'Study Session Alerts', desc: 'Alerts when it is time to focus' },
-                      { key: 'notifyOverdue', label: 'Overdue Task Warnings', desc: 'Alerts for missed study blocks' },
-                    ].map(item => (
-                      <div key={item.key} className="flex items-start justify-between py-2">
-                        <div>
-                          <p className="text-sm font-bold text-neutral-900 dark:text-white">{item.label}</p>
-                          <p className="text-[11px] text-neutral-500">{item.desc}</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={Boolean(notifPrefs[item.key as keyof NotificationPreferences])}
-                          onChange={(e) => updateNotifPref(item.key as keyof NotificationPreferences, e.target.checked)}
-                          className="rounded text-primary-500"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSection === 'privacy' && (
-            <div className="space-y-6">
-              <div className="card p-6">
-                <h3 className="font-bold text-neutral-900 dark:text-white mb-4">Data Visibility</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold">Public Academic Profile</p>
-                      <p className="text-xs text-neutral-500">Allow others to see your level and achievements</p>
-                    </div>
-                    <button className="w-12 h-6 rounded-full bg-neutral-300 dark:bg-neutral-700 relative">
-                      <div className="w-4 h-4 rounded-full bg-white absolute top-1 left-1" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold">Analytics Sharing</p>
-                      <p className="text-xs text-neutral-500">Share anonymized study habits to improve AI</p>
-                    </div>
-                    <button className="w-12 h-6 rounded-full bg-primary-500 relative">
-                      <div className="w-4 h-4 rounded-full bg-white absolute top-1 left-7" />
-                    </button>
-                  </div>
-                </div>
+                <button
+                  onClick={handleToggleBrowserNotifs}
+                  className={`w-12 h-6 rounded-full relative transition-colors ${notifPrefs.browserNotifications ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${notifPrefs.browserNotifications ? 'left-7' : 'left-1'}`} />
+                </button>
               </div>
 
-              <div className="card p-6 border-primary-100 dark:border-primary-900/30">
-                <h3 className="font-bold text-neutral-900 dark:text-white mb-4">Your Data</h3>
-                <div className="space-y-3">
-                  <button className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all text-left">
-                    <div className="flex items-center gap-3">
-                      <Download className="w-4 h-4 text-primary-500" />
-                      <span className="text-sm font-medium">Export Study Logs (CSV)</span>
+              <div className="space-y-4">
+                {[
+                  { key: 'notifyExams', label: 'Upcoming Exams', desc: 'Alerts 48h before exams' },
+                  { key: 'notifyAssignments', label: 'Assignment Deadlines', desc: 'Reminders for due items' },
+                  { key: 'notifySessions', label: 'Study Sessions', desc: 'Alerts for scheduled focus blocks' },
+                  { key: 'notifyHighPriority', label: 'Priority Reminders', desc: 'Daily nudges for high-priority tasks' },
+                ].map(item => (
+                  <div key={item.key} className="flex items-start justify-between py-2">
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900 dark:text-white">{item.label}</p>
+                      <p className="text-[11px] text-neutral-500">{item.desc}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-neutral-300" />
-                  </button>
-                  <button className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all text-left">
-                    <div className="flex items-center gap-3">
-                      <Download className="w-4 h-4 text-primary-500" />
-                      <span className="text-sm font-medium">Export Notes (JSON)</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-neutral-300" />
-                  </button>
-                </div>
+                    <input 
+                      type="checkbox" 
+                      checked={Boolean(notifPrefs[item.key as keyof NotificationPreferences])}
+                      onChange={(e) => updateNotifPref(item.key as keyof NotificationPreferences, e.target.checked)}
+                      className="rounded text-primary-500"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -466,39 +381,20 @@ export function AccountView() {
           {activeSection === 'account' && (
             <div className="space-y-6">
               <div className="card p-6">
-                <h3 className="font-bold text-neutral-900 dark:text-white mb-4">Security & Password</h3>
+                <h3 className="font-bold text-neutral-900 dark:text-white mb-4">Security</h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="label">New Password</label>
-                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input" placeholder="Min 6 characters" />
-                  </div>
-                  <div>
-                    <label className="label">Confirm New Password</label>
-                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input" placeholder="Confirm password" />
-                  </div>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input" placeholder="New Password" />
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input" placeholder="Confirm Password" />
                   <button onClick={handleChangePassword} disabled={changingPassword} className="btn-secondary w-full">
                     {changingPassword ? 'Updating...' : 'Update Password'}
                   </button>
                 </div>
               </div>
-
-              <div className="card p-6 border-error-200 dark:border-error-900/30">
-                <h3 className="font-bold text-error-600 dark:text-error-400 mb-4">Danger Zone</h3>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-4 rounded-xl bg-error-50 dark:bg-error-950/20 text-error-700 dark:text-error-300">
-                    <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                    <p className="text-xs leading-relaxed">
-                      Deleting your account will permanently remove all your tasks, study logs, notes, and achievement data. This action cannot be undone.
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button onClick={signOut} className="btn-secondary flex-1">
-                      <LogOut className="w-4 h-4" /> Sign Out
-                    </button>
-                    <button className="btn bg-error-500 text-white hover:bg-error-600 flex-1 px-4 py-2.5 text-sm shadow-soft">
-                      <Trash2 className="w-4 h-4" /> Delete Account
-                    </button>
-                  </div>
+              <div className="card p-6 border-error-100 dark:border-error-900/30">
+                <h3 className="font-bold text-error-600 mb-4">Danger Zone</h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button onClick={signOut} className="btn-secondary flex-1">Sign Out</button>
+                  <button className="btn bg-error-500 text-white flex-1 px-4 py-2.5 text-sm">Delete Account</button>
                 </div>
               </div>
             </div>
