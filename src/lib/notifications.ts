@@ -83,11 +83,23 @@ export function saveNotifications(userId: string, notifs: AppNotification[]): vo
   } catch {}
 }
 
-export function clearSavedNotifications(userId: string): void {
-  if (!userId) return;
+export function clearSavedNotifications(userId?: string): void {
   try {
-    sessionStorage.removeItem(`${BASE_KEY_NOTIFS}_${userId}`);
-    sessionStorage.removeItem(`${BASE_KEY_PREFS}_${userId}`);
+    if (userId) {
+      sessionStorage.removeItem(`${BASE_KEY_NOTIFS}_${userId}`);
+      sessionStorage.removeItem(`${BASE_KEY_PREFS}_${userId}`);
+    }
+    // Sweep any orphaned notification or preference keys from sessionStorage
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith(BASE_KEY_NOTIFS) || key.startsWith(BASE_KEY_PREFS))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+    }
   } catch {}
 }
 

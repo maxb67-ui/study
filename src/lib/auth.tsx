@@ -29,9 +29,9 @@ const IS_PROD = import.meta.env.PROD;
 
 function clearAllUserData(userId?: string): void {
   try {
+    clearSavedNotifications(userId);
     if (userId) {
       clearAcademicGoals(userId);
-      clearSavedNotifications(userId);
     }
     localStorage.removeItem(DEMO_USER_KEY);
     localStorage.removeItem('lumora_unlocked_achievements_v1');
@@ -90,8 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
-      if (newSession?.user) loadProfile(newSession.user.id);
-      else setProfile(null);
+      if (newSession?.user) {
+        loadProfile(newSession.user.id);
+      } else {
+        clearAllUserData();
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
