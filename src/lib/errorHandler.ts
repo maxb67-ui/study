@@ -1,5 +1,7 @@
 "use client";
 
+import { encryptData, decryptData } from './crypto';
+
 export type ErrorLogEntry = {
   id: string;
   timestamp: string;
@@ -14,10 +16,8 @@ const ERROR_LOG_KEY = 'lumora_error_logs_v1';
  * Aggressively scrubs sensitive data like tokens, passwords, and PII.
  */
 export function logError(error: unknown, context?: string): ErrorLogEntry {
-  // Extract essential message only, avoiding full object serialization
   const rawMessage = error instanceof Error ? error.message : String(error);
   
-  // Broader redaction patterns
   const patterns = [
     { regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: '[EMAIL_REDACTED]' },
     { regex: /bearer\s+[a-zA-Z0-9._~+/-]+=*/gi, replacement: 'Bearer [TOKEN_REDACTED]' },
@@ -40,24 +40,24 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
     context: sanitizedContext || undefined,
   };
 
-  // Log clean error to console for dev, but keep storage scrubbed
   console.error(`[Lumora Error]${context ? ` [${context}]` : ''}:`, error);
 
   try {
-    const existing: ErrorLogEntry[] = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
-    // Only keep last 10 entries to minimize local footprint
+    const existingRaw = localStorage.getItem(ERROR_LOG_KEY);
+    // Use a generic key or system ID for logs as user may not be logged in
+    const dummyKey = 'lumora_system_diagnostic'; 
+    const existing: ErrorLogEntry[] = existingRaw ? (decryptData(existingRaw, dummyKey) || []) : [];
     const updated = [entry, ...existing].slice(0, 10);
-    localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(updated));
-  } catch (e) {
-    // Fail silently if localStorage is restricted
-  }
+    localStorage.setItem(ERROR_LOG_KEY, encryptData(updated, dummyKey));
+  } catch (e) {}
 
   return entry;
 }
 
 export function getErrorLogs(): ErrorLogEntry[] {
   try {
-    return JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
+    const raw = localStorage.getItem(ERROR_LOG_KEY);
+    return raw ? (decryptData(raw, 'lumora_system_diagnostic') || []) : [];
   } catch {
     return [];
   }

@@ -1,5 +1,6 @@
 import type { Task, StudyBlock, Settings } from './supabase';
 import { localDateISO, daysBetween } from './dates';
+import { encryptData, decryptData } from './crypto';
 
 export type ReminderType = 'session' | 'exam' | 'assignment' | 'overdue' | 'task_high';
 
@@ -41,7 +42,10 @@ export function getNotificationPrefs(userId: string): NotificationPreferences {
   if (!userId) return DEFAULT_NOTIFICATION_PREFS;
   try {
     const saved = localStorage.getItem(`${BASE_KEY_PREFS}_${userId}`);
-    if (saved) return { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(saved) };
+    if (saved) {
+      const decrypted = decryptData(saved, userId);
+      return decrypted ? { ...DEFAULT_NOTIFICATION_PREFS, ...decrypted } : DEFAULT_NOTIFICATION_PREFS;
+    }
   } catch {}
   return DEFAULT_NOTIFICATION_PREFS;
 }
@@ -49,7 +53,8 @@ export function getNotificationPrefs(userId: string): NotificationPreferences {
 export function saveNotificationPrefs(userId: string, prefs: NotificationPreferences): void {
   if (!userId) return;
   try {
-    localStorage.setItem(`${BASE_KEY_PREFS}_${userId}`, JSON.stringify(prefs));
+    const encrypted = encryptData(prefs, userId);
+    localStorage.setItem(`${BASE_KEY_PREFS}_${userId}`, encrypted);
   } catch {}
 }
 
@@ -57,7 +62,10 @@ export function getSavedNotifications(userId: string): AppNotification[] {
   if (!userId) return [];
   try {
     const saved = localStorage.getItem(`${BASE_KEY_NOTIFS}_${userId}`);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const decrypted = decryptData(saved, userId);
+      return decrypted || [];
+    }
   } catch {}
   return [];
 }
@@ -75,7 +83,8 @@ export function saveNotifications(userId: string, notifs: AppNotification[]): vo
       actionView: n.actionView,
       taskId: n.taskId,
     }));
-    localStorage.setItem(`${BASE_KEY_NOTIFS}_${userId}`, JSON.stringify(sanitized));
+    const encrypted = encryptData(sanitized, userId);
+    localStorage.setItem(`${BASE_KEY_NOTIFS}_${userId}`, encrypted);
   } catch {}
 }
 

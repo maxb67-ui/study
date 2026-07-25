@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { 
   User as UserIcon, Lock, Save, LogOut, Sun, Moon, Bell, Shield, 
-  Trash2, Target, Clock, AlertTriangle
+  Trash2, Target, Clock, AlertTriangle, LogOut as LogOutIcon
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { PageHeader } from '@/components/PageHeader';
@@ -134,10 +134,23 @@ export function AccountView() {
               </div>
               
               <div className="card p-6 border-error-100 dark:border-error-950">
-                <h3 className="font-bold text-error-600 mb-4">Danger Zone</h3>
-                <button onClick={signOut} className="btn-secondary text-error-500 border-error-100">
-                  <LogOut className="w-4 h-4" /> Sign Out of All Devices
-                </button>
+                <h3 className="font-bold text-error-600 mb-1">Danger Zone</h3>
+                <p className="text-xs text-neutral-500 mb-4">Actions that affect your active sessions and data visibility.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button onClick={() => signOut(false)} className="btn-secondary text-neutral-600 dark:text-neutral-300">
+                    <LogOutIcon className="w-4 h-4" /> Sign Out This Device
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if(confirm('This will log you out of all devices including your phone and tablet. Continue?')) {
+                        signOut(true);
+                      }
+                    }} 
+                    className="btn-secondary text-error-500 border-error-100 hover:bg-error-50"
+                  >
+                    <Shield className="w-4 h-4" /> Sign Out of All Devices
+                  </button>
+                </div>
               </div>
             </div>
           )}

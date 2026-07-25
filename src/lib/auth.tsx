@@ -15,7 +15,7 @@ type AuthContextValue = {
   isDemo: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signOut: (global?: boolean) => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string, currentPassword: string) => Promise<{ error: string | null }>;
   updateProfile: (patch: Partial<Profile>) => Promise<{ error: string | null }>;
@@ -27,10 +27,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const DEMO_USER_KEY = 'lumora_demo_user';
 const IS_PROD = import.meta.env.PROD;
 
-/**
- * Clears all user data from storage. 
- * Pass userId to target user-specific keys.
- */
 function clearAllUserData(userId?: string): void {
   try {
     if (userId) {
@@ -50,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [isDemo] = useState(!isSupabaseConfigured && !IS_PROD);
 
   const loadProfile = useCallback(async (userId: string) => {
@@ -115,10 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null };
   }, []);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (global: boolean = false) => {
     const userId = session?.user?.id;
     clearAllUserData(userId);
-    if (isSupabaseConfigured) await supabase.auth.signOut();
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut({ scope: global ? 'global' : 'local' });
+    }
     setSession(null);
     setProfile(null);
   }, [session]);
@@ -133,22 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updatePassword = useCallback(async (newPassword: string, currentPassword: string) => {
     if (!isSupabaseConfigured) return { error: 'Not supported in demo mode' };
-
     if (!currentPassword || !currentPassword.trim()) {
       return { error: 'Current password is required to verify your identity.' };
     }
-
     if (!session?.user?.email) {
       return { error: 'No active session found. Please re-authenticate.' };
     }
-
-    // Re-authenticate user with current password before updating
     const { error: reauthError } = await supabase.auth.signInWithPassword({
       email: session.user.email,
       password: currentPassword,
     });
     if (reauthError) return { error: 'Incorrect current password. Re-authentication failed.' };
-
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     return { error: error?.message || null };
   }, [session]);

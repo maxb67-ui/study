@@ -1,5 +1,6 @@
 import type { Task, StudyLog, StudyBlock } from './supabase';
 import { localDateISO, addDays } from './dates';
+import { encryptData, decryptData } from './crypto';
 
 export type AcademicGoals = {
   dailyGoalMinutes: number;
@@ -40,7 +41,10 @@ export function getAcademicGoals(userId: string): AcademicGoals {
   if (!userId) return DEFAULT_GOALS;
   try {
     const saved = localStorage.getItem(`${BASE_STORAGE_KEY}_${userId}`);
-    if (saved) return { ...DEFAULT_GOALS, ...JSON.parse(saved) };
+    if (saved) {
+      const decrypted = decryptData(saved, userId);
+      return decrypted ? { ...DEFAULT_GOALS, ...decrypted } : DEFAULT_GOALS;
+    }
   } catch {}
   return DEFAULT_GOALS;
 }
@@ -48,7 +52,8 @@ export function getAcademicGoals(userId: string): AcademicGoals {
 export function saveAcademicGoals(userId: string, goals: AcademicGoals): void {
   if (!userId) return;
   try {
-    localStorage.setItem(`${BASE_STORAGE_KEY}_${userId}`, JSON.stringify(goals));
+    const encrypted = encryptData(goals, userId);
+    localStorage.setItem(`${BASE_STORAGE_KEY}_${userId}`, encrypted);
   } catch {}
 }
 
