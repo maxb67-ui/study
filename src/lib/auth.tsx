@@ -5,6 +5,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured, type Profile } from './supabase';
 import { clearSavedNotifications } from './notifications';
 import { clearErrorLogs } from './errorHandler';
+import { clearAcademicGoals } from './goals';
 
 type AuthContextValue = {
   session: Session | null;
@@ -26,15 +27,23 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const DEMO_USER_KEY = 'lumora_demo_user';
 const IS_PROD = import.meta.env.PROD;
 
-function clearAllUserData(): void {
+/**
+ * Clears all user data from storage. 
+ * Pass userId to target user-specific keys.
+ */
+function clearAllUserData(userId?: string): void {
   try {
+    if (userId) {
+      clearAcademicGoals(userId);
+      clearSavedNotifications(userId);
+    }
     localStorage.removeItem(DEMO_USER_KEY);
-    localStorage.removeItem('lumora_academic_goals_v1');
     localStorage.removeItem('lumora_unlocked_achievements_v1');
     sessionStorage.clear();
-    clearSavedNotifications();
     clearErrorLogs();
-  } catch {}
+  } catch (e) {
+    console.warn('Cleanup failed during sign out', e);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -107,11 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    clearAllUserData();
+    const userId = session?.user?.id;
+    clearAllUserData(userId);
     if (isSupabaseConfigured) await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
-  }, []);
+  }, [session]);
 
   const resetPassword = useCallback(async (email: string) => {
     if (!isSupabaseConfigured) return { error: IS_PROD ? 'Database not configured' : null };

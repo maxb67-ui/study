@@ -52,6 +52,13 @@ export function saveAcademicGoals(userId: string, goals: AcademicGoals): void {
   } catch {}
 }
 
+export function clearAcademicGoals(userId: string): void {
+  if (!userId) return;
+  try {
+    localStorage.removeItem(`${BASE_STORAGE_KEY}_${userId}`);
+  } catch {}
+}
+
 export function calculateGoalProgress(
   goals: AcademicGoals,
   tasks: Task[],
