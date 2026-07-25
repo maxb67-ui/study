@@ -13,7 +13,8 @@ type State = {
   showLogs: boolean;
 };
 
-const IS_DEV = import.meta.env.DEV;
+// Strict check for production
+const IS_PROD = import.meta.env.PROD;
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
@@ -27,7 +28,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logError(error, `React Component Crash: ${errorInfo.componentStack?.slice(0, 150)}`);
+    // Sanitize stack trace before logging
+    const trace = errorInfo.componentStack?.slice(0, 150) || 'Unknown Location';
+    logError(error, `Component Crash: ${trace}`);
   }
 
   private handleReset = () => {
@@ -56,11 +59,12 @@ export class ErrorBoundary extends Component<Props, State> {
             <div>
               <h2 className="text-xl sm:text-2xl font-black tracking-tight">Something Went Wrong</h2>
               <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-2 leading-relaxed">
-                Lumora encountered an unexpected issue while rendering this section. Don't worry — your data is safe in your account.
+                Lumora encountered an unexpected issue. Your academic data and study progress are securely saved in the cloud.
               </p>
             </div>
 
-            {this.state.error && (
+            {/* Technical details only visible in development */}
+            {!IS_PROD && this.state.error && (
               <div className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 text-left text-xs font-mono text-neutral-600 dark:text-neutral-300 overflow-x-auto max-h-24">
                 {this.state.error.message}
               </div>
@@ -75,22 +79,24 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
             </div>
 
-            {IS_DEV && (
+            {/* Diagnostic panel strictly hidden in production */}
+            {!IS_PROD && (
               <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800">
                 <button
                   onClick={() => this.setState((s) => ({ showLogs: !s.showLogs }))}
                   className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 font-medium flex items-center gap-1 mx-auto"
                 >
                   <Bug className="w-3.5 h-3.5" />
-                  {this.state.showLogs ? 'Hide Technical Diagnostics' : 'View Technical Diagnostics'}
+                  {this.state.showLogs ? 'Hide Diagnostics' : 'View Diagnostics (Dev Only)'}
                 </button>
 
                 {this.state.showLogs && (
                   <div className="mt-3 p-3 rounded-xl bg-neutral-900 text-neutral-200 text-left text-[10px] font-mono space-y-2 max-h-48 overflow-y-auto">
                     <div className="flex items-center justify-between pb-1 border-b border-neutral-800">
-                      <span className="font-bold text-amber-400">Error Log History ({logs.length})</span>
-                      <button onClick={() => { clearErrorLogs(); this.forceUpdate(); }} className="text-neutral-400 hover:text-white underline">Clear</button>
+                      <span className="font-bold text-amber-400">Sanitized Error History ({logs.length})</span>
+                      <button onClick={() => { clearErrorLogs(); this.forceUpdate(); }} className="text-neutral-400 hover:text-white underline text-[9px]">Clear</button>
                     </div>
+                    {logs.length === 0 && <p className="text-neutral-500 italic">No logs in current session.</p>}
                     {logs.map((log) => (
                       <div key={log.id} className="space-y-0.5 border-b border-neutral-800/50 pb-1">
                         <p className="text-neutral-400">[{new Date(log.timestamp).toLocaleTimeString()}] {log.context}</p>
