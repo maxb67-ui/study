@@ -20,9 +20,22 @@ export const supabase = createClient(safeUrl, safeKey, {
   },
 });
 
+export type Course = {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  teacher: string | null;
+  schedule: string | null; // e.g. "Mon, Wed 10:00 AM"
+  grading_weights: Record<string, number> | null; // e.g. {"Exams": 40, "Homework": 60}
+  syllabus_url: string | null;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   user_id: string;
+  course_id: string | null;
   title: string;
   type: 'homework' | 'assignment' | 'project' | 'quiz' | 'exam' | 'deadline';
   subject: string;
@@ -99,3 +112,5 @@ export type TaskInput = Omit<Task, 'id' | 'user_id' | 'created_at' | 'completed'
 };
 
 export type NoteInput = Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+
+export type CourseInput = Omit<Course, 'id' | 'user_id' | 'created_at'>;

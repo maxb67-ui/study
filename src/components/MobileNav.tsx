@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, CalendarDays, Timer, BookMarked, Bot, Trophy, Lightbulb, UserCircle } from 'lucide-react';
+import { LayoutDashboard, ListTodo, CalendarDays, Timer, BookMarked, Bot, Trophy, BookOpen, UserCircle } from 'lucide-react';
 import type { View } from '@/App';
 
 type Props = {
@@ -8,13 +8,11 @@ type Props = {
 
 const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+  { id: 'courses', label: 'Classes', icon: BookOpen },
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { id: 'calendar', label: 'Cal', icon: CalendarDays },
   { id: 'notes', label: 'Notes', icon: BookMarked },
-  { id: 'tutor', label: 'Tutor', icon: Bot },
-  { id: 'achievements', label: 'Badges', icon: Trophy },
   { id: 'pomodoro', label: 'Focus', icon: Timer },
-  { id: 'account', label: 'Account', icon: UserCircle },
 ];
 
 export function MobileNav({ view, setView }: Props) {

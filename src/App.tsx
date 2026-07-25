@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useCallback, useEffect, useMemo } from 'react';
+import { useState, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
 import { MobileNav } from './components/MobileNav';
@@ -11,11 +11,10 @@ import { useAuth } from './lib/auth';
 import { useSettings } from './lib/useSettings';
 import { useDarkMode } from './lib/useDarkMode';
 import { PomodoroProvider, usePomodoro } from './lib/usePomodoroContext';
-import { supabase, type Task, type StudyBlock, type StudyLog, type Note, type NoteInput } from './lib/supabase';
+import { supabase, type Task, type StudyBlock, type StudyLog, type Note, type NoteInput, type Course } from './lib/supabase';
 import { useToast } from './components/Toast';
 import { scanForReminders, type AppNotification } from './lib/notifications';
 
-// Lazy-loaded route views
 const Dashboard = lazy(() => import('./components/views/Dashboard').then(m => ({ default: m.Dashboard })));
 const TasksView = lazy(() => import('./components/views/TasksView').then(m => ({ default: m.TasksView })));
 const CalendarView = lazy(() => import('./components/views/CalendarView').then(m => ({ default: m.CalendarView })));
@@ -25,8 +24,9 @@ const TutorView = lazy(() => import('./components/views/TutorView').then(m => ({
 const AchievementsView = lazy(() => import('./components/views/AchievementsView').then(m => ({ default: m.AchievementsView })));
 const InsightsView = lazy(() => import('./components/views/InsightsView').then(m => ({ default: m.InsightsView })));
 const AccountView = lazy(() => import('./components/views/AccountView').then(m => ({ default: m.AccountView })));
+const CoursesView = lazy(() => import('./components/views/CoursesView').then(m => ({ default: m.CoursesView })));
 
-export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'tutor' | 'achievements' | 'insights' | 'account';
+export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | 'tutor' | 'achievements' | 'insights' | 'account' | 'courses';
 
 function AppContent() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -38,11 +38,12 @@ function AppContent() {
   const [blocks, setBlocks] = useState<StudyBlock[]>([]);
   const [logs, setLogs] = useState<StudyLog[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const { pomodoroTaskId, setPomodoroTaskId, startPomodoroForTask } = usePomodoro();
+  const { startPomodoroForTask } = usePomodoro();
 
   useDarkMode(settings.dark_mode);
 
@@ -54,29 +55,29 @@ function AppContent() {
       { data: tasksData },
       { data: blocksData },
       { data: logsData },
-      { data: notesData }
+      { data: notesData },
+      { data: coursesData }
     ] = await Promise.all([
       supabase.from('tasks').select('*').order('due_date', { ascending: true }),
       supabase.from('study_blocks').select('*').order('scheduled_date', { ascending: true }),
       supabase.from('study_logs').select('*').order('date', { ascending: false }),
-      supabase.from('notes').select('*').order('updated_at', { ascending: false })
+      supabase.from('notes').select('*').order('updated_at', { ascending: false }),
+      supabase.from('courses').select('*').order('name', { ascending: true })
     ]);
 
     if (tasksData) setTasks(tasksData);
     if (blocksData) setBlocks(blocksData);
     if (logsData) setLogs(logsData);
     if (notesData) setNotes(notesData);
+    if (coursesData) setCourses(coursesData);
     
     setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    if (user && profile?.onboarded) {
-      fetchData();
-    }
+    if (user && profile?.onboarded) fetchData();
   }, [user, profile?.onboarded, fetchData]);
 
-  // Periodic reminder scan
   useEffect(() => {
     if (!loading && tasks.length > 0) {
       const notifs = scanForReminders(tasks, blocks, settings, (type, msg) => toast(type, msg));
@@ -85,46 +86,26 @@ function AppContent() {
   }, [loading, tasks, blocks, settings, toast]);
 
   const handleSaveNote = async (input: NoteInput, id?: string) => {
-    if (id) {
-      const { error } = await supabase.from('notes').update(input).eq('id', id);
-      if (error) toast('error', 'Failed to update note');
-      else toast('success', 'Note saved');
-    } else {
-      const { error } = await supabase.from('notes').insert({ ...input, user_id: user?.id });
-      if (error) toast('error', 'Failed to create note');
-      else toast('success', 'Note created');
-    }
-    fetchData();
-  };
-
-  const handleDeleteNote = async (id: string) => {
-    const { error } = await supabase.from('notes').delete().eq('id', id);
-    if (error) toast('error', 'Failed to delete note');
-    else toast('success', 'Note deleted');
+    if (id) await supabase.from('notes').update(input).eq('id', id);
+    else await supabase.from('notes').insert({ ...input, user_id: user?.id });
     fetchData();
   };
 
   const navProps = {
-    view,
-    setView,
-    tasks,
-    blocks,
-    logs,
-    notes,
-    settings,
-    updateSettings,
-    pomodoroTaskId,
-    setPomodoroTaskId,
+    view, setView, tasks, blocks, logs, notes, courses, settings, updateSettings,
+    pomodoroTaskId: null,
+    setPomodoroTaskId: () => {},
     startPomodoroForTask,
-    onAddTask: () => { setView('tasks'); },
-    onQuickFocus: () => { setView('pomodoro'); },
+    onAddTask: () => setView('tasks'),
+    onQuickFocus: () => setView('pomodoro'),
     onBlocksGenerated: fetchData,
     onLogAdded: fetchData,
     reloadTasks: fetchData,
     reloadBlocks: fetchData,
     reloadNotes: fetchData,
+    reloadCourses: fetchData,
     onSaveNote: handleSaveNote,
-    onDeleteNote: handleDeleteNote,
+    onDeleteNote: async (id: string) => { await supabase.from('notes').delete().eq('id', id); fetchData(); },
     loading: loading || authLoading || settingsLoading
   };
 
@@ -135,22 +116,16 @@ function AppContent() {
   return (
     <div className="min-h-screen flex bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
       <Sidebar 
-        view={view} 
-        setView={setView} 
-        settings={settings} 
+        view={view} setView={setView} settings={settings} 
         toggleDark={() => updateSettings({ dark_mode: !settings.dark_mode })}
-        notifications={notifications}
-        setNotifications={setNotifications}
+        notifications={notifications} setNotifications={setNotifications}
         onOpenSearch={() => setSearchOpen(true)}
       />
       
       <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
         <MobileHeader 
-          settings={settings} 
-          toggleDark={() => updateSettings({ dark_mode: !settings.dark_mode })}
-          setView={setView}
-          notifications={notifications}
-          setNotifications={setNotifications}
+          settings={settings} toggleDark={() => updateSettings({ dark_mode: !settings.dark_mode })}
+          setView={setView} notifications={notifications} setNotifications={setNotifications}
           onOpenSearch={() => setSearchOpen(true)}
         />
         
@@ -164,21 +139,17 @@ function AppContent() {
             {view === 'tutor' && <TutorView {...navProps} />}
             {view === 'achievements' && <AchievementsView {...navProps} />}
             {view === 'insights' && <InsightsView {...navProps} />}
+            {view === 'courses' && <CoursesView {...navProps} />}
             {view === 'account' && <AccountView />}
           </Suspense>
         </main>
-
         <MobileNav view={view} setView={setView} />
         <PomodoroMiniWidget view={view} setView={setView} />
       </div>
 
       <GlobalSearchModal 
-        isOpen={searchOpen} 
-        onClose={() => setSearchOpen(false)}
-        setView={setView}
-        tasks={tasks}
-        notes={notes}
-        blocks={blocks}
+        isOpen={searchOpen} onClose={() => setSearchOpen(false)} setView={setView}
+        tasks={tasks} notes={notes} blocks={blocks}
         onAddTask={() => { setView('tasks'); setSearchOpen(false); }}
         onQuickFocus={() => { setView('pomodoro'); setSearchOpen(false); }}
         startPomodoroForTask={(id) => { startPomodoroForTask(id); setSearchOpen(false); }}
@@ -189,16 +160,11 @@ function AppContent() {
 
 export default function App() {
   const { user } = useAuth();
-  const { settings, reload: reloadSettings } = useSettings();
+  const { settings } = useSettings();
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // Simple task fetch for PomodoroProvider initialization
   useEffect(() => {
-    if (user) {
-      supabase.from('tasks').select('*').then(({ data }) => {
-        if (data) setTasks(data);
-      });
-    }
+    if (user) supabase.from('tasks').select('*').then(({ data }) => { if (data) setTasks(data); });
   }, [user]);
 
   return (

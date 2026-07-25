@@ -1,22 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash2, Calendar, BookOpen, AlertTriangle, Zap, X, Settings as SettingsIcon } from 'lucide-react';
-import type { AppNotification, NotificationPreferences } from '@/lib/notifications';
-import { getSavedNotifications, saveNotifications, getNotificationPrefs, saveNotificationPrefs, requestBrowserPermission } from '@/lib/notifications';
+import { Bell, Check, Trash2, Calendar, BookOpen, AlertTriangle, Zap, X, Settings as SettingsIcon, Flag } from 'lucide-react';
+import type { AppNotification, NotificationPreferences, ReminderType } from '@/lib/notifications';
+import { saveNotifications, getNotificationPrefs, saveNotificationPrefs, requestBrowserPermission } from '@/lib/notifications';
 import type { View } from '@/App';
 import { useToast } from '@/components/Toast';
 
-const TYPE_ICONS = {
+const TYPE_ICONS: Record<ReminderType, typeof Bell> = {
   session: Calendar,
   exam: AlertTriangle,
   assignment: BookOpen,
   overdue: Zap,
+  task_high: Flag,
 };
 
-const TYPE_COLORS = {
+const TYPE_COLORS: Record<ReminderType, string> = {
   session: 'text-primary-500 bg-primary-50 dark:bg-primary-950/40',
   exam: 'text-accent-500 bg-accent-50 dark:bg-accent-950/40',
   assignment: 'text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40',
   overdue: 'text-error-500 bg-error-50 dark:bg-error-950/40',
+  task_high: 'text-orange-500 bg-orange-50 dark:bg-orange-950/40',
 };
 
 export function NotificationCenter({
@@ -92,7 +94,6 @@ export function NotificationCenter({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Bell Button */}
       <button
         onClick={() => setOpen((o) => !o)}
         className="relative w-9 h-9 rounded-xl flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
@@ -104,7 +105,6 @@ export function NotificationCenter({
         )}
       </button>
 
-      {/* Popover Menu */}
       {open && (
         <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 card p-4 shadow-xl border border-neutral-200 dark:border-neutral-800 animate-scale-in">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-neutral-200 dark:border-neutral-800">
@@ -136,7 +136,6 @@ export function NotificationCenter({
             </div>
           </div>
 
-          {/* Preferences Settings Modal inside dropdown */}
           {showSettings ? (
             <div className="space-y-3 py-1 text-xs">
               <div className="flex items-center justify-between">

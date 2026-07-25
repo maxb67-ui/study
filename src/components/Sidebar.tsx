@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, BookMarked, Bot, Trophy, Moon, Sun, GraduationCap, UserCircle, LogOut, Search, Command } from 'lucide-react';
+import { LayoutDashboard, ListTodo, CalendarDays, Timer, Lightbulb, BookMarked, Bot, Trophy, Moon, Sun, GraduationCap, UserCircle, LogOut, Search, Command, BookOpen } from 'lucide-react';
 import type { View } from '@/App';
 import type { Settings } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -17,12 +17,13 @@ type Props = {
 
 const NAV_ITEMS: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'courses', label: 'Courses', icon: BookOpen },
   { id: 'tasks', label: 'Tasks', icon: ListTodo },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
   { id: 'notes', label: 'Notes & AI', icon: BookMarked },
   { id: 'tutor', label: 'AI Tutor', icon: Bot },
-  { id: 'achievements', label: 'Badges & Level', icon: Trophy },
+  { id: 'achievements', label: 'Badges & Rank', icon: Trophy },
   { id: 'insights', label: 'Insights', icon: Lightbulb },
 ];
 
@@ -44,7 +45,6 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
         <NotificationCenter setView={setView} notifications={notifications} setNotifications={setNotifications} />
       </div>
 
-      {/* Global Search Quick Trigger */}
       <div className="px-3.5 mb-2">
         <button
           onClick={onOpenSearch}
@@ -81,18 +81,14 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
         })}
       </nav>
 
-      {/* User profile section */}
       <div className="px-3.5 pb-2 space-y-1">
         <button
           onClick={() => setView('account')}
           className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 ${
-            view === 'account'
-              ? 'bg-gradient-to-r from-primary-500 to-indigo-600 text-white'
-              : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80'
+            view === 'account' ? 'bg-gradient-to-r from-primary-500 to-indigo-600 text-white' : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80'
           }`}
         >
-          <UserCircle className="w-[18px] h-[18px]" />
-          Account
+          <UserCircle className="w-[18px] h-[18px]" /> Account
         </button>
         <button
           onClick={toggleDark}
@@ -109,9 +105,7 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
             {(profile?.full_name || user?.email || '?').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">
-              {profile?.full_name || 'Student'}
-            </p>
+            <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">{profile?.full_name || 'Student'}</p>
             <p className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500 truncate">{user?.email}</p>
           </div>
         </div>
@@ -119,8 +113,7 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
           onClick={signOut}
           className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-bold text-neutral-500 dark:text-neutral-400 hover:bg-error-50 dark:hover:bg-error-950/40 hover:text-error-600 dark:hover:text-error-400 transition-all"
         >
-          <LogOut className="w-[18px] h-[18px]" />
-          Sign Out
+          <LogOut className="w-[18px] h-[18px]" /> Sign Out
         </button>
       </div>
     </aside>
