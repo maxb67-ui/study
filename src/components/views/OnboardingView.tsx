@@ -140,6 +140,11 @@ export function OnboardingView() {
   }
 
   async function finish() {
+    if (!user?.id) {
+      toast('error', 'User session not found');
+      return;
+    }
+
     setSaving(true);
 
     const profilePatch = {
@@ -168,7 +173,7 @@ export function OnboardingView() {
         study_end_time: timeRange.end,
         daily_goal_minutes: dailyGoalMinutes,
       })
-      .eq('user_id', user!.id);
+      .eq('user_id', user.id);
 
     if (settingsError) {
       toast('error', 'Failed to save study preferences');
@@ -176,10 +181,11 @@ export function OnboardingView() {
       return;
     }
 
-    // Insert any tasks the user added
+    // Insert any tasks the user added, explicitly binding user_id
     if (tasks.length > 0) {
       const { error: tasksError } = await supabase.from('tasks').insert(
         tasks.map((t) => ({
+          user_id: user.id,
           title: t.title!,
           subject: t.subject!,
           type: t.type!,

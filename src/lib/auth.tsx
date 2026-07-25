@@ -16,7 +16,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
-  updatePassword: (newPassword: string, currentPassword?: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string, currentPassword: string) => Promise<{ error: string | null }>;
   updateProfile: (patch: Partial<Profile>) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
 };
@@ -31,6 +31,7 @@ function clearAllUserData(): void {
     localStorage.removeItem(DEMO_USER_KEY);
     localStorage.removeItem('lumora_academic_goals_v1');
     localStorage.removeItem('lumora_unlocked_achievements_v1');
+    sessionStorage.clear();
     clearSavedNotifications();
     clearErrorLogs();
   } catch {}
@@ -120,16 +121,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null };
   }, []);
 
-  const updatePassword = useCallback(async (newPassword: string, currentPassword?: string) => {
+  const updatePassword = useCallback(async (newPassword: string, currentPassword: string) => {
     if (!isSupabaseConfigured) return { error: 'Not supported in demo mode' };
 
-    if (currentPassword && session?.user?.email) {
-      const { error: reauthError } = await supabase.auth.signInWithPassword({
-        email: session.user.email,
-        password: currentPassword,
-      });
-      if (reauthError) return { error: 'Incorrect current password' };
+    if (!currentPassword || !currentPassword.trim()) {
+      return { error: 'Current password is required to verify your identity.' };
     }
+
+    if (!session?.user?.email) {
+      return { error: 'No active session found. Please re-authenticate.' };
+    }
+
+    // Re-authenticate user with current password before updating
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: currentPassword,
+    });
+    if (reauthError) return { error: 'Incorrect current password. Re-authentication failed.' };
 
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     return { error: error?.message || null };

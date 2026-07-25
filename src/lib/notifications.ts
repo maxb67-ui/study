@@ -61,7 +61,18 @@ export function getSavedNotifications(): AppNotification[] {
 
 export function saveNotifications(notifs: AppNotification[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(notifs.slice(0, 50)));
+    // Strip extraneous PII, saving max 30 entries
+    const sanitized = notifs.slice(0, 30).map((n) => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      timestamp: n.timestamp,
+      read: n.read,
+      actionView: n.actionView,
+      taskId: n.taskId,
+    }));
+    localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(sanitized));
   } catch {}
 }
 

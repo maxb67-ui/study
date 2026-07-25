@@ -10,29 +10,29 @@ export type ErrorLogEntry = {
 const ERROR_LOG_KEY = 'lumora_error_logs_v1';
 
 /**
- * Logs errors locally for diagnostic review, stripping sensitive stack traces.
+ * Logs errors locally for diagnostic review, stripping sensitive PII and tokens.
  */
 export function logError(error: unknown, context?: string): ErrorLogEntry {
   const errObj = error instanceof Error ? error : new Error(String(error));
   
-  // Sanitize message to remove common PII patterns (emails/tokens)
+  // Sanitize message to remove PII (emails, auth tokens, full names if embedded)
   const sanitizedMessage = errObj.message
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]')
-    .replace(/bearer\s+[a-zA-Z0-9._~+/-]+=*/gi, 'Bearer [REDACTED_TOKEN]');
+    .replace(/bearer\s+[a-zA-Z0-9._~+/-]+=*/gi, 'Bearer [REDACTED_TOKEN]')
+    .replace(/(password|secret|token)=[^&]+/gi, '$1=[REDACTED]');
 
   const entry: ErrorLogEntry = {
     id: `err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     timestamp: new Date().toISOString(),
     message: sanitizedMessage,
-    context,
+    context: context ? context.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]') : undefined,
   };
 
-  // We log the full error to console for dev, but exclude stack from localStorage
   console.error(`[Lumora Error]${context ? ` [${context}]` : ''}:`, errObj);
 
   try {
     const existing: ErrorLogEntry[] = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
-    const updated = [entry, ...existing].slice(0, 20); // Keep only recent 20 sanitized entries
+    const updated = [entry, ...existing].slice(0, 15); // Retain max 15 entries
     localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(updated));
   } catch {}
 

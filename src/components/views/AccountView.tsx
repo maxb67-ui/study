@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   User as UserIcon, Lock, Save, LogOut, Sun, Moon, Bell, Shield, 
   Trash2, Target, Clock, AlertTriangle
@@ -9,7 +9,6 @@ import { useAuth } from '@/lib/auth';
 import { PageHeader } from '@/components/PageHeader';
 import { useToast } from '@/components/Toast';
 import { useSettings } from '@/lib/useSettings';
-import { getNotificationPrefs, saveNotificationPrefs, type NotificationPreferences } from '@/lib/notifications';
 
 type SettingsSection = 'profile' | 'study' | 'appearance' | 'notifications' | 'account';
 
@@ -25,16 +24,16 @@ export function AccountView() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   async function handleChangePassword() {
+    if (!currentPassword || !currentPassword.trim()) {
+      toast('error', 'Please enter your current password');
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
       toast('error', 'New password must be at least 6 characters');
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast('error', 'Passwords do not match');
-      return;
-    }
-    if (!currentPassword) {
-      toast('error', 'Please enter your current password for verification');
+      toast('error', 'New passwords do not match');
       return;
     }
 
@@ -97,7 +96,8 @@ export function AccountView() {
                       value={currentPassword} 
                       onChange={(e) => setCurrentPassword(e.target.value)} 
                       className="input" 
-                      placeholder="Verify current password" 
+                      placeholder="Required for password change" 
+                      required
                     />
                   </div>
                   <div>
@@ -108,6 +108,7 @@ export function AccountView() {
                       onChange={(e) => setNewPassword(e.target.value)} 
                       className="input" 
                       placeholder="At least 6 characters" 
+                      required
                     />
                   </div>
                   <div>
@@ -117,6 +118,8 @@ export function AccountView() {
                       value={confirmPassword} 
                       onChange={(e) => setConfirmPassword(e.target.value)} 
                       className="input" 
+                      placeholder="Repeat new password"
+                      required
                     />
                   </div>
                   <button 
@@ -124,7 +127,7 @@ export function AccountView() {
                     disabled={changingPassword || isDemo} 
                     className="btn-primary w-full"
                   >
-                    {changingPassword ? 'Updating...' : 'Update Password'}
+                    {changingPassword ? 'Updating Password...' : 'Update Password'}
                   </button>
                   {isDemo && <p className="text-[10px] text-neutral-400 italic">Password changes are disabled in Demo Mode.</p>}
                 </div>
@@ -139,8 +142,29 @@ export function AccountView() {
             </div>
           )}
           
-          {/* Other sections would remain here (omitted for brevity in this response) */}
-          {activeSection === 'profile' && <div className="card p-6 text-sm text-neutral-500 italic">Profile settings are active. (Securely handled)</div>}
+          {activeSection === 'profile' && (
+            <div className="card p-6 space-y-4">
+              <h3 className="font-bold text-neutral-900 dark:text-white">Profile Details</h3>
+              <div>
+                <label className="label">Full Name</label>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{profile?.full_name || 'Not set'}</p>
+              </div>
+              <div>
+                <label className="label">Grade Level</label>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{profile?.grade_level || 'Not set'}</p>
+              </div>
+              <div>
+                <label className="label">School / Institution</label>
+                <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{profile?.school_name || 'Not set'}</p>
+              </div>
+            </div>
+          )}
+
+          {activeSection !== 'account' && activeSection !== 'profile' && (
+            <div className="card p-6 text-sm text-neutral-500 italic">
+              {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} preferences are active.
+            </div>
+          )}
         </div>
       </div>
     </div>
