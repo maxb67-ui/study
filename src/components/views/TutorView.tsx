@@ -246,7 +246,7 @@ export function TutorView(props: NavProps) {
         {loading && (
           <div className="flex gap-3 items-center text-xs text-neutral-400 animate-pulse">
             <div className="w-8 h-8 rounded-xl bg-primary-500/20 flex items-center justify-center text-primary-500">
-              <Sparkles className="w-4 h-4 animate-spin" />
+              <span className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             </div>
             <span>AI Tutor is thinking...</span>
           </div>
