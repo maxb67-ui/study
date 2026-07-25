@@ -15,6 +15,7 @@ import { InsightCard } from '@/components/InsightCard';
 import { useToast } from '@/components/Toast';
 import { useGamification } from '@/lib/useGamification';
 import { GamificationCard } from '@/components/GamificationCard';
+import { GoalTrackerCard } from '@/components/GoalTrackerCard';
 
 const TYPE_ICONS: Record<Task['type'], typeof FileText> = {
   homework: ClipboardList,
@@ -33,11 +34,6 @@ const TYPE_ACCENT: Record<Task['type'], { bg: string; text: string; bar: string 
   exam: { bg: 'bg-accent-50 dark:bg-accent-950/40', text: 'text-accent-500', bar: 'bg-accent-500' },
   deadline: { bg: 'bg-error-50 dark:bg-error-950/40', text: 'text-error-500', bar: 'bg-error-500' },
 };
-
-const SUBJECT_PALETTE = [
-  '#3380ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
-];
 
 const CLASS_COLORS = [
   'from-primary-500 to-indigo-600',
@@ -185,8 +181,8 @@ export function Dashboard(props: NavProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-5 lg:px-8 py-6 lg:py-8">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-700 p-6 sm:p-8 mb-6 animate-slide-up shadow-glow-primary border border-white/20">
+    <div className="max-w-6xl mx-auto px-5 lg:px-8 py-6 lg:py-8 space-y-6">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-700 p-6 sm:p-8 animate-slide-up shadow-glow-primary border border-white/20">
         <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-accent-400/25 blur-3xl animate-pulse-slow" />
         <div className="absolute -bottom-16 -left-8 w-56 h-56 rounded-full bg-primary-400/30 blur-3xl" />
         
@@ -224,7 +220,10 @@ export function Dashboard(props: NavProps) {
         </div>
       </div>
 
-      <div className="mb-6">
+      {/* Goal Tracker Card */}
+      <GoalTrackerCard tasks={tasks} logs={logs} blocks={blocks} setView={setView} />
+
+      <div>
         <GamificationCard
           userLevel={userLevel}
           streak={gamifiedStreak}
@@ -235,14 +234,14 @@ export function Dashboard(props: NavProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <QuickAction onClick={onAddTask} icon={Plus} label="Add Task" sublabel="New assignment or exam" color="primary" delay="0ms" />
         <QuickAction onClick={onQuickFocus} icon={Timer} label="Focus Session" sublabel="Start a Pomodoro" color="accent" delay="50ms" />
         <QuickAction onClick={() => setView('calendar')} icon={Calendar} label="Calendar" sublabel="View your schedule" color="success" delay="100ms" />
         <QuickAction onClick={() => setView('insights')} icon={TrendingUp} label="Insights" sublabel="Track your progress" color="primary" delay="150ms" />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card p-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
@@ -336,14 +335,14 @@ export function Dashboard(props: NavProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Flame} iconBg="bg-accent-50 dark:bg-accent-950/40" iconColor="text-accent-500" value={String(streak)} label="Day Streak" delay="300ms" />
         <StatCard icon={Clock} iconBg="bg-primary-50 dark:bg-primary-950/40" iconColor="text-primary-500" value={`${Math.round(weekMinutes / 60 * 10) / 10}h`} label="This Week" delay="350ms" />
         <StatCard icon={CheckCircle2} iconBg="bg-success-50 dark:bg-success-950/40" iconColor="text-success-500" value={String(completedTasks.length)} label="Tasks Done" delay="400ms" />
         <StatCard icon={TrendingUp} iconBg="bg-violet-50 dark:bg-violet-950/40" iconColor="text-violet-500" value={`${taskProgress}%`} label="Completion Rate" delay="450ms" />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid lg:grid-cols-2 gap-6">
         <div className="card p-6 animate-slide-up" style={{ animationDelay: '500ms' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
