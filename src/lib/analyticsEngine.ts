@@ -1,5 +1,5 @@
 import type { Task, StudyBlock, StudyLog, Settings } from './supabase';
-import { localDateISO, addDays, daysBetween, parseTimeToMinutes } from './dates';
+import { localDateISO, addDays, daysBetween } from './dates';
 
 export type SubjectPerformance = {
   subject: string;
@@ -29,6 +29,12 @@ export type GoalMetrics = {
   weekMinutes: number;
   weekProgressPct: number;
   daysGoalMetThisWeek: number;
+};
+
+export type ProductivityTrend = {
+  label: string;
+  value: number;
+  pct: number;
 };
 
 export type AIRecommendation = {
@@ -76,7 +82,6 @@ export function computeSubjectPerformance(
     subjectsMap.set(sub, existing);
   }
 
-  // Calculate study log minutes per task/subject
   const taskMap = new Map(tasks.map((t) => [t.id, t]));
   for (const log of logs) {
     if (log.task_id) {
@@ -89,7 +94,6 @@ export function computeSubjectPerformance(
     }
   }
 
-  // Also include completed study blocks
   for (const block of blocks) {
     if (block.completed) {
       const task = taskMap.get(block.task_id);
@@ -118,18 +122,33 @@ export function computeSubjectPerformance(
   }).sort((a, b) => b.loggedMinutes - a.loggedMinutes);
 }
 
+export function computeProductivityTrends(logs: StudyLog[]): ProductivityTrend[] {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayMins = new Array(7).fill(0);
+  
+  logs.forEach(log => {
+    const d = new Date(log.date + 'T00:00:00');
+    dayMins[d.getDay()] += log.minutes_studied;
+  });
+
+  const max = Math.max(...dayMins, 1);
+  return days.map((label, i) => ({
+    label,
+    value: dayMins[i],
+    pct: Math.round((dayMins[i] / max) * 100)
+  }));
+}
+
 export function computeConsistency(logs: StudyLog[]): ConsistencyMetrics {
   const today = new Date();
   const studyDays = new Set(logs.filter((l) => l.minutes_studied > 0).map((l) => l.date));
 
-  // 30 day history
   let activeDays30 = 0;
   for (let i = 0; i < 30; i++) {
     const iso = localDateISO(addDays(today, -i));
     if (studyDays.has(iso)) activeDays30 += 1;
   }
 
-  // Current streak
   let currentStreak = 0;
   const cursor = new Date(today);
   if (!studyDays.has(localDateISO(cursor))) {
@@ -140,7 +159,6 @@ export function computeConsistency(logs: StudyLog[]): ConsistencyMetrics {
     cursor.setDate(cursor.getDate() - 1);
   }
 
-  // Longest streak in logs
   const sortedDates = Array.from(studyDays).sort();
   let maxStreak = 0;
   let tempStreak = 0;
@@ -181,12 +199,10 @@ export function computeGoals(
 ): GoalMetrics {
   const todayISO = localDateISO(new Date());
 
-  // Today study time
   const todayLogsMin = logs.filter((l) => l.date === todayISO).reduce((s, l) => s + l.minutes_studied, 0);
   const todayBlocksMin = blocks.filter((b) => b.scheduled_date === todayISO && b.completed).reduce((s, b) => s + b.duration_minutes, 0);
   const todayMinutes = Math.max(todayLogsMin, todayBlocksMin);
 
-  // Past 7 days
   let weekMinutes = 0;
   let daysGoalMetThisWeek = 0;
   const target = settings.daily_goal_minutes || 120;
@@ -228,7 +244,6 @@ export function generateSmartRecommendations(
   const subjectStats = computeSubjectPerformance(tasks, logs, blocks);
   const consistency = computeConsistency(logs);
 
-  // 1. High-difficulty neglect check
   const hardSubjects = subjectStats.filter((s) => s.avgDifficulty >= 4);
   for (const sub of hardSubjects) {
     if (sub.loggedMinutes < 30 && sub.totalTasks > 0) {
@@ -236,28 +251,26 @@ export function generateSmartRecommendations(
         id: `neglect-${sub.subject}`,
         category: 'balance',
         title: `Prioritize ${sub.subject}`,
-        description: `${sub.subject} has a high difficulty rating (${sub.avgDifficulty}/5), but you've logged under 30 minutes this week. Schedule focus blocks early in the day.`,
-        actionLabel: 'Schedule Study Time',
+        description: `${sub.subject} has a high difficulty rating, but you've logged under 30 mins this week. Schedule a focus block tomorrow.`,
+        actionLabel: 'Go to Calendar',
         targetView: 'calendar',
         priority: 'high',
       });
     }
   }
 
-  // 2. Overdue task accumulation
   if (overdueTasks.length > 0) {
     recs.push({
       id: 'overdue-alert',
       category: 'urgency',
-      title: `Clear ${overdueTasks.length} Overdue Task${overdueTasks.length > 1 ? 's' : ''}`,
-      description: `You have overdue assignments. Breaking them into 25-minute Pomodoro sessions helps beat procrastination.`,
-      actionLabel: 'View Overdue Tasks',
+      title: `Clear ${overdueTasks.length} Overdue Tasks`,
+      description: `Procrastination builds pressure. Use the Pomodoro timer to clear one overdue task right now.`,
+      actionLabel: 'View Tasks',
       targetView: 'tasks',
       priority: 'high',
     });
   }
 
-  // 3. Upcoming Exam Cramming Warning
   for (const exam of upcomingExams) {
     const daysLeft = daysBetween(today, new Date(exam.due_date));
     if (daysLeft >= 0 && daysLeft <= 5) {
@@ -267,8 +280,8 @@ export function generateSmartRecommendations(
           id: `exam-prep-${exam.id}`,
           category: 'urgency',
           title: `Upcoming Exam: ${exam.title}`,
-          description: `Exam in ${daysLeft === 0 ? 'today' : `${daysLeft} day(s)`}. Generate an AI schedule now to distribute review sessions evenly instead of cramming.`,
-          actionLabel: 'Generate Schedule',
+          description: `Exam in ${daysLeft} days. Regenerate your AI schedule to ensure review sessions are distributed evenly.`,
+          actionLabel: 'Regenerate Schedule',
           targetView: 'calendar',
           priority: 'high',
         });
@@ -276,7 +289,6 @@ export function generateSmartRecommendations(
     }
   }
 
-  // 4. Streak preservation
   if (consistency.streak > 2) {
     const todayLog = logs.find((l) => l.date === todayISO);
     if (!todayLog || todayLog.minutes_studied < 15) {
@@ -284,52 +296,12 @@ export function generateSmartRecommendations(
         id: 'streak-keep',
         category: 'streak',
         title: `Protect Your ${consistency.streak}-Day Streak!`,
-        description: `Complete a single 25-minute focus session today to keep your study momentum alive.`,
-        actionLabel: 'Start Focus Session',
+        description: `Log just 15 minutes of study today to keep your momentum alive.`,
+        actionLabel: 'Start Timer',
         targetView: 'pomodoro',
         priority: 'medium',
       });
     }
-  }
-
-  // 5. Heavy load / Burnout warning
-  const todayBlocks = blocks.filter((b) => b.scheduled_date === todayISO);
-  const plannedMinutes = todayBlocks.reduce((s, b) => s + b.duration_minutes, 0);
-  if (plannedMinutes >= 300) {
-    recs.push({
-      id: 'burnout-warning',
-      category: 'burnout',
-      title: 'Heavy Study Day (5+ Hours)',
-      description: `You have ${Math.round(plannedMinutes / 60 * 10) / 10} hours scheduled today. Be sure to take 10-15 minute breaks between sessions to retain memory.`,
-      targetView: 'pomodoro',
-      priority: 'medium',
-    });
-  }
-
-  // 6. Habit consistency booster
-  if (consistency.consistencyRate < 40 && tasks.length > 3) {
-    recs.push({
-      id: 'habit-booster',
-      category: 'habit',
-      title: 'Build Daily Consistency',
-      description: `Studying 30 minutes every day yields better retention than 4-hour weekend marathons. Try lowering your daily goal to ${Math.max(30, Math.round(settings.daily_goal_minutes * 0.75))} mins.`,
-      actionLabel: 'Adjust Goal',
-      targetView: 'account',
-      priority: 'low',
-    });
-  }
-
-  // Fallback praise/encouragement
-  if (recs.length === 0) {
-    recs.push({
-      id: 'great-job',
-      category: 'habit',
-      title: 'Great Study Balance!',
-      description: `Your study distribution is well-balanced across subjects. Keep logging sessions and maintaining your goals!`,
-      actionLabel: 'Start Focus Timer',
-      targetView: 'pomodoro',
-      priority: 'low',
-    });
   }
 
   return recs;
