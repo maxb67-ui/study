@@ -13,6 +13,8 @@ type State = {
   showLogs: boolean;
 };
 
+const IS_DEV = import.meta.env.DEV;
+
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -73,30 +75,32 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
             </div>
 
-            <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800">
-              <button
-                onClick={() => this.setState((s) => ({ showLogs: !s.showLogs }))}
-                className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 font-medium flex items-center gap-1 mx-auto"
-              >
-                <Bug className="w-3.5 h-3.5" />
-                {this.state.showLogs ? 'Hide Technical Diagnostics' : 'View Technical Diagnostics'}
-              </button>
+            {IS_DEV && (
+              <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                <button
+                  onClick={() => this.setState((s) => ({ showLogs: !s.showLogs }))}
+                  className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 font-medium flex items-center gap-1 mx-auto"
+                >
+                  <Bug className="w-3.5 h-3.5" />
+                  {this.state.showLogs ? 'Hide Technical Diagnostics' : 'View Technical Diagnostics'}
+                </button>
 
-              {this.state.showLogs && (
-                <div className="mt-3 p-3 rounded-xl bg-neutral-900 text-neutral-200 text-left text-[10px] font-mono space-y-2 max-h-48 overflow-y-auto">
-                  <div className="flex items-center justify-between pb-1 border-b border-neutral-800">
-                    <span className="font-bold text-amber-400">Error Log History ({logs.length})</span>
-                    <button onClick={() => { clearErrorLogs(); this.forceUpdate(); }} className="text-neutral-400 hover:text-white underline">Clear</button>
-                  </div>
-                  {logs.map((log) => (
-                    <div key={log.id} className="space-y-0.5 border-b border-neutral-800/50 pb-1">
-                      <p className="text-neutral-400">[{new Date(log.timestamp).toLocaleTimeString()}] {log.context}</p>
-                      <p className="text-error-400">{log.message}</p>
+                {this.state.showLogs && (
+                  <div className="mt-3 p-3 rounded-xl bg-neutral-900 text-neutral-200 text-left text-[10px] font-mono space-y-2 max-h-48 overflow-y-auto">
+                    <div className="flex items-center justify-between pb-1 border-b border-neutral-800">
+                      <span className="font-bold text-amber-400">Error Log History ({logs.length})</span>
+                      <button onClick={() => { clearErrorLogs(); this.forceUpdate(); }} className="text-neutral-400 hover:text-white underline">Clear</button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {logs.map((log) => (
+                      <div key={log.id} className="space-y-0.5 border-b border-neutral-800/50 pb-1">
+                        <p className="text-neutral-400">[{new Date(log.timestamp).toLocaleTimeString()}] {log.context}</p>
+                        <p className="text-error-400">{log.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );

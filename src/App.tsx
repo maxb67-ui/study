@@ -15,7 +15,7 @@ import { useDarkMode } from './lib/useDarkMode';
 import { PomodoroProvider, usePomodoro } from './lib/usePomodoroContext';
 import { supabase, type Task, type StudyBlock, type StudyLog, type Note, type NoteInput, type Course } from './lib/supabase';
 import { useToast } from './components/Toast';
-import { scanForReminders, type AppNotification } from './lib/notifications';
+import { scanForReminders, type AppNotification, getSavedNotifications } from './lib/notifications';
 
 const Dashboard = lazy(() => import('./components/views/Dashboard').then(m => ({ default: m.Dashboard })));
 const TasksView = lazy(() => import('./components/views/TasksView').then(m => ({ default: m.TasksView })));
@@ -79,8 +79,20 @@ function AppContent() {
   useEffect(() => {
     if (user && (profile?.onboarded || isDemo)) {
       fetchData();
+      setNotifications(getSavedNotifications(user.id));
     }
   }, [user, profile?.onboarded, isDemo, fetchData]);
+
+  // Periodic reminder scan
+  useEffect(() => {
+    if (user && (profile?.onboarded || isDemo) && !loading && tasks.length > 0) {
+      const timer = setTimeout(() => {
+        const updated = scanForReminders(user.id, tasks, blocks, settings, toast);
+        setNotifications(updated);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, profile?.onboarded, isDemo, loading, tasks, blocks, settings, toast]);
 
   const handleSaveNote = async (input: NoteInput, id?: string) => {
     if (!user) return;

@@ -1,92 +1,36 @@
--- Enable Row Level Security (RLS) on all application tables
-ALTER TABLE IF EXISTS public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.courses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.notes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.study_blocks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.study_logs ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on all core tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_blocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
--- Safely drop existing policies to ensure clean re-creation
-DO $$
-BEGIN
-  -- Profiles
-  DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
-  DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
-  DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+-- Profiles: Users can view and update only their own profile
+CREATE POLICY "Users can manage own profile" ON profiles
+  FOR ALL USING (auth.uid() = id);
 
-  -- Settings
-  DROP POLICY IF EXISTS "Users can view own settings" ON public.settings;
-  DROP POLICY IF EXISTS "Users can insert own settings" ON public.settings;
-  DROP POLICY IF EXISTS "Users can update own settings" ON public.settings;
+-- Courses: Strict owner access
+CREATE POLICY "Users can manage own courses" ON courses
+  FOR ALL USING (auth.uid() = user_id);
 
-  -- Tasks
-  DROP POLICY IF EXISTS "Users can view own tasks" ON public.tasks;
-  DROP POLICY IF EXISTS "Users can insert own tasks" ON public.tasks;
-  DROP POLICY IF EXISTS "Users can update own tasks" ON public.tasks;
-  DROP POLICY IF EXISTS "Users can delete own tasks" ON public.tasks;
+-- Tasks: Strict owner access
+CREATE POLICY "Users can manage own tasks" ON tasks
+  FOR ALL USING (auth.uid() = user_id);
 
-  -- Courses
-  DROP POLICY IF EXISTS "Users can view own courses" ON public.courses;
-  DROP POLICY IF EXISTS "Users can insert own courses" ON public.courses;
-  DROP POLICY IF EXISTS "Users can update own courses" ON public.courses;
-  DROP POLICY IF EXISTS "Users can delete own courses" ON public.courses;
+-- Notes: Strict owner access
+CREATE POLICY "Users can manage own notes" ON notes
+  FOR ALL USING (auth.uid() = user_id);
 
-  -- Notes
-  DROP POLICY IF EXISTS "Users can view own notes" ON public.notes;
-  DROP POLICY IF EXISTS "Users can insert own notes" ON public.notes;
-  DROP POLICY IF EXISTS "Users can update own notes" ON public.notes;
-  DROP POLICY IF EXISTS "Users can delete own notes" ON public.notes;
+-- Study Blocks: Strict owner access
+CREATE POLICY "Users can manage own blocks" ON study_blocks
+  FOR ALL USING (auth.uid() = user_id);
 
-  -- Study Blocks
-  DROP POLICY IF EXISTS "Users can view own study_blocks" ON public.study_blocks;
-  DROP POLICY IF EXISTS "Users can insert own study_blocks" ON public.study_blocks;
-  DROP POLICY IF EXISTS "Users can update own study_blocks" ON public.study_blocks;
-  DROP POLICY IF EXISTS "Users can delete own study_blocks" ON public.study_blocks;
+-- Study Logs: Strict owner access
+CREATE POLICY "Users can manage own logs" ON study_logs
+  FOR ALL USING (auth.uid() = user_id);
 
-  -- Study Logs
-  DROP POLICY IF EXISTS "Users can view own study_logs" ON public.study_logs;
-  DROP POLICY IF EXISTS "Users can insert own study_logs" ON public.study_logs;
-  DROP POLICY IF EXISTS "Users can update own study_logs" ON public.study_logs;
-  DROP POLICY IF EXISTS "Users can delete own study_logs" ON public.study_logs;
-END $$;
-
--- 1. Profiles (id = auth.uid())
-CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-
--- 2. Settings (user_id = auth.uid())
-CREATE POLICY "Users can view own settings" ON public.settings FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own settings" ON public.settings FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own settings" ON public.settings FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
--- 3. Tasks
-CREATE POLICY "Users can view own tasks" ON public.tasks FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own tasks" ON public.tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own tasks" ON public.tasks FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own tasks" ON public.tasks FOR DELETE USING (auth.uid() = user_id);
-
--- 4. Courses
-CREATE POLICY "Users can view own courses" ON public.courses FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own courses" ON public.courses FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own courses" ON public.courses FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own courses" ON public.courses FOR DELETE USING (auth.uid() = user_id);
-
--- 5. Notes
-CREATE POLICY "Users can view own notes" ON public.notes FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own notes" ON public.notes FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own notes" ON public.notes FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own notes" ON public.notes FOR DELETE USING (auth.uid() = user_id);
-
--- 6. Study Blocks
-CREATE POLICY "Users can view own study_blocks" ON public.study_blocks FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own study_blocks" ON public.study_blocks FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own study_blocks" ON public.study_blocks FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own study_blocks" ON public.study_blocks FOR DELETE USING (auth.uid() = user_id);
-
--- 7. Study Logs
-CREATE POLICY "Users can view own study_logs" ON public.study_logs FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own study_logs" ON public.study_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own study_logs" ON public.study_logs FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own study_logs" ON public.study_logs FOR DELETE USING (auth.uid() = user_id);
+-- Settings: Strict owner access
+CREATE POLICY "Users can manage own settings" ON settings
+  FOR ALL USING (auth.uid() = user_id);

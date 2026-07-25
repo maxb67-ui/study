@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Target, Award, CheckCircle2, TrendingUp, Sparkles, ChevronRight, Edit3, X, Save, Clock, BookOpen } from 'lucide-react';
 import type { Task, StudyLog, StudyBlock } from '@/lib/supabase';
 import type { View } from '@/App';
 import { getAcademicGoals, saveAcademicGoals, calculateGoalProgress, generateGoalAIRecommendations, type AcademicGoals } from '@/lib/goals';
 import { useToast } from '@/components/Toast';
+import { useAuth } from '@/lib/auth';
 
 type Props = {
   tasks: Task[];
@@ -13,8 +14,11 @@ type Props = {
 };
 
 export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
+  const { user } = useAuth();
   const toast = useToast();
-  const [goals, setGoals] = useState<AcademicGoals>(getAcademicGoals());
+  
+  const initialGoals = useMemo(() => getAcademicGoals(user?.id || ''), [user?.id]);
+  const [goals, setGoals] = useState<AcademicGoals>(initialGoals);
   const [isEditing, setIsEditing] = useState(false);
 
   // Form State
@@ -28,6 +32,7 @@ export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
   const recommendations = generateGoalAIRecommendations(goals, progress, tasks);
 
   function handleSave() {
+    if (!user?.id) return;
     const updated: AcademicGoals = {
       dailyGoalMinutes,
       weeklyGoalHours,
@@ -36,7 +41,7 @@ export function GoalTrackerCard({ tasks, logs, blocks, setView }: Props) {
       targetExamPrepSessions,
     };
     setGoals(updated);
-    saveAcademicGoals(updated);
+    saveAcademicGoals(user.id, updated);
     setIsEditing(false);
     toast('success', 'Academic goals updated successfully!');
   }

@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Bell, Check, Trash2, Calendar, BookOpen, AlertTriangle, Zap, X, Settings as SettingsIcon, Flag } from 'lucide-react';
 import type { AppNotification, NotificationPreferences, ReminderType } from '@/lib/notifications';
-import { saveNotifications, getNotificationPrefs, saveNotificationPrefs, requestBrowserPermission } from '@/lib/notifications';
+import { saveNotifications, getNotificationPrefs, saveNotificationPrefs, requestBrowserPermission, getSavedNotifications } from '@/lib/notifications';
 import type { View } from '@/App';
 import { useToast } from '@/components/Toast';
+import { useAuth } from '@/lib/auth';
 
 const TYPE_ICONS: Record<ReminderType, typeof Bell> = {
   session: Calendar,
@@ -30,9 +31,13 @@ export function NotificationCenter({
   notifications: AppNotification[];
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
 }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [prefs, setPrefs] = useState<NotificationPreferences>(getNotificationPrefs());
+  
+  const initialPrefs = useMemo(() => getNotificationPrefs(user?.id || ''), [user?.id]);
+  const [prefs, setPrefs] = useState<NotificationPreferences>(initialPrefs);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
 
@@ -49,21 +54,24 @@ export function NotificationCenter({
   }, []);
 
   function markAllAsRead() {
+    if (!user?.id) return;
     const updated = notifications.map((n) => ({ ...n, read: true }));
     setNotifications(updated);
-    saveNotifications(updated);
+    saveNotifications(user.id, updated);
   }
 
   function clearAll() {
+    if (!user?.id) return;
     setNotifications([]);
-    saveNotifications([]);
+    saveNotifications(user.id, []);
   }
 
   function handleNotifClick(notif: AppNotification) {
+    if (!user?.id) return;
     if (!notif.read) {
       const updated = notifications.map((n) => (n.id === notif.id ? { ...n, read: true } : n));
       setNotifications(updated);
-      saveNotifications(updated);
+      saveNotifications(user.id, updated);
     }
     if (notif.actionView) {
       setView(notif.actionView);
@@ -72,6 +80,7 @@ export function NotificationCenter({
   }
 
   async function handleToggleBrowser() {
+    if (!user?.id) return;
     if (!prefs.browserNotifications) {
       const granted = await requestBrowserPermission();
       if (!granted) {
@@ -82,13 +91,14 @@ export function NotificationCenter({
     }
     const updated = { ...prefs, browserNotifications: !prefs.browserNotifications };
     setPrefs(updated);
-    saveNotificationPrefs(updated);
+    saveNotificationPrefs(user.id, updated);
   }
 
   function updatePref<K extends keyof NotificationPreferences>(key: K, val: NotificationPreferences[K]) {
+    if (!user?.id) return;
     const updated = { ...prefs, [key]: val };
     setPrefs(updated);
-    saveNotificationPrefs(updated);
+    saveNotificationPrefs(user.id, updated);
     toast('info', 'Notification preferences saved');
   }
 

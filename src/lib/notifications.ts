@@ -24,8 +24,8 @@ export type NotificationPreferences = {
   browserNotifications: boolean;
 };
 
-const STORAGE_KEY_NOTIFS = 'lumora_notifications_v1';
-const STORAGE_KEY_PREFS = 'lumora_notification_prefs_v1';
+const BASE_KEY_NOTIFS = 'lumora_notifications_v1';
+const BASE_KEY_PREFS = 'lumora_notification_prefs_v1';
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
   advanceMinutes: 30,
@@ -37,31 +37,34 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
   browserNotifications: false,
 };
 
-export function getNotificationPrefs(): NotificationPreferences {
+export function getNotificationPrefs(userId: string): NotificationPreferences {
+  if (!userId) return DEFAULT_NOTIFICATION_PREFS;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_PREFS);
+    const saved = localStorage.getItem(`${BASE_KEY_PREFS}_${userId}`);
     if (saved) return { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(saved) };
   } catch {}
   return DEFAULT_NOTIFICATION_PREFS;
 }
 
-export function saveNotificationPrefs(prefs: NotificationPreferences): void {
+export function saveNotificationPrefs(userId: string, prefs: NotificationPreferences): void {
+  if (!userId) return;
   try {
-    localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs));
+    localStorage.setItem(`${BASE_KEY_PREFS}_${userId}`, JSON.stringify(prefs));
   } catch {}
 }
 
-export function getSavedNotifications(): AppNotification[] {
+export function getSavedNotifications(userId: string): AppNotification[] {
+  if (!userId) return [];
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_NOTIFS);
+    const saved = localStorage.getItem(`${BASE_KEY_NOTIFS}_${userId}`);
     if (saved) return JSON.parse(saved);
   } catch {}
   return [];
 }
 
-export function saveNotifications(notifs: AppNotification[]): void {
+export function saveNotifications(userId: string, notifs: AppNotification[]): void {
+  if (!userId) return;
   try {
-    // Strip extraneous PII, saving max 30 entries
     const sanitized = notifs.slice(0, 30).map((n) => ({
       id: n.id,
       type: n.type,
@@ -72,14 +75,15 @@ export function saveNotifications(notifs: AppNotification[]): void {
       actionView: n.actionView,
       taskId: n.taskId,
     }));
-    localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(sanitized));
+    localStorage.setItem(`${BASE_KEY_NOTIFS}_${userId}`, JSON.stringify(sanitized));
   } catch {}
 }
 
-export function clearSavedNotifications(): void {
+export function clearSavedNotifications(userId: string): void {
+  if (!userId) return;
   try {
-    localStorage.removeItem(STORAGE_KEY_NOTIFS);
-    localStorage.removeItem(STORAGE_KEY_PREFS);
+    localStorage.removeItem(`${BASE_KEY_NOTIFS}_${userId}`);
+    localStorage.removeItem(`${BASE_KEY_PREFS}_${userId}`);
   } catch {}
 }
 
@@ -104,13 +108,15 @@ export function triggerBrowserNotification(title: string, body: string) {
 }
 
 export function scanForReminders(
+  userId: string,
   tasks: Task[],
   blocks: StudyBlock[],
   settings: Settings,
   showToast: (type: 'info' | 'error' | 'success', msg: string) => void,
 ): AppNotification[] {
-  const prefs = getNotificationPrefs();
-  const existing = getSavedNotifications();
+  if (!userId) return [];
+  const prefs = getNotificationPrefs(userId);
+  const existing = getSavedNotifications(userId);
   const existingIds = new Set(existing.map((n) => n.id));
 
   const newNotifs: AppNotification[] = [];
@@ -210,7 +216,7 @@ export function scanForReminders(
 
   if (newNotifs.length > 0) {
     const combined = [...newNotifs, ...existing];
-    saveNotifications(combined);
+    saveNotifications(userId, combined);
     showToast('info', `🔔 ${newNotifs.length} new study reminder${newNotifs.length > 1 ? 's' : ''}`);
     return combined;
   }

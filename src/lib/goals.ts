@@ -26,7 +26,7 @@ export type GoalRecommendation = {
   metricTag: string;
 };
 
-const STORAGE_KEY = 'lumora_academic_goals_v1';
+const BASE_STORAGE_KEY = 'lumora_academic_goals_v1';
 
 export const DEFAULT_GOALS: AcademicGoals = {
   dailyGoalMinutes: 120,
@@ -36,17 +36,19 @@ export const DEFAULT_GOALS: AcademicGoals = {
   targetExamPrepSessions: 5,
 };
 
-export function getAcademicGoals(): AcademicGoals {
+export function getAcademicGoals(userId: string): AcademicGoals {
+  if (!userId) return DEFAULT_GOALS;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(`${BASE_STORAGE_KEY}_${userId}`);
     if (saved) return { ...DEFAULT_GOALS, ...JSON.parse(saved) };
   } catch {}
   return DEFAULT_GOALS;
 }
 
-export function saveAcademicGoals(goals: AcademicGoals): void {
+export function saveAcademicGoals(userId: string, goals: AcademicGoals): void {
+  if (!userId) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+    localStorage.setItem(`${BASE_STORAGE_KEY}_${userId}`, JSON.stringify(goals));
   } catch {}
 }
 
