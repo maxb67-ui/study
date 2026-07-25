@@ -44,7 +44,7 @@ export function MobileHeader({ settings, toggleDark, setView, notifications, set
           {(profile?.full_name || user?.email || '?').charAt(0).toUpperCase()}
         </div>
         <button
-          onClick={signOut}
+          onClick={() => signOut()}
           className="w-9 h-9 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
           title="Sign Out"
         >

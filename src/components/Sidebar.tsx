@@ -110,7 +110,7 @@ export function Sidebar({ view, setView, settings, toggleDark, notifications, se
           </div>
         </div>
         <button
-          onClick={signOut}
+          onClick={() => signOut()}
           className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-bold text-neutral-500 dark:text-neutral-400 hover:bg-error-50 dark:hover:bg-error-950/40 hover:text-error-600 dark:hover:text-error-400 transition-all"
         >
           <LogOut className="w-[18px] h-[18px]" /> Sign Out

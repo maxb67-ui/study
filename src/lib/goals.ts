@@ -34,6 +34,13 @@ export const DEFAULT_GOALS: AcademicGoals = {
   targetExamPrepSessions: 5,
 };
 
+export function clearAcademicGoals(userId: string): void {
+  if (!userId) return;
+  try {
+    sessionStorage.removeItem(`lumora_academic_goals_${userId}`);
+  } catch {}
+}
+
 export function mapDbToAcademicGoals(row: Partial<UserAcademicGoals> | null): AcademicGoals {
   if (!row) return DEFAULT_GOALS;
   return {
