@@ -43,9 +43,12 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
     context: sanitizedContext || undefined,
   };
 
-  console.error(`[Lumora Error]${context ? ` [${context}]` : ''}:`, error);
+  // Only output sanitized messages to console during local development
+  if (import.meta.env.DEV) {
+    console.error(`[Lumora Error]${sanitizedContext ? ` [${sanitizedContext}]` : ''}:`, sanitizedMessage);
+  }
 
-  // SECURITY FIX: Use sessionStorage instead of persistent localStorage, and enforce non-prod check
+  // Use sessionStorage instead of persistent localStorage, and enforce non-prod check
   if (!IS_PROD) {
     try {
       const existingRaw = sessionStorage.getItem(ERROR_LOG_KEY);

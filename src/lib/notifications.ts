@@ -40,7 +40,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
 export function getNotificationPrefs(userId: string): NotificationPreferences {
   if (!userId) return DEFAULT_NOTIFICATION_PREFS;
   try {
-    const saved = localStorage.getItem(`${BASE_KEY_PREFS}_${userId}`);
+    const saved = sessionStorage.getItem(`${BASE_KEY_PREFS}_${userId}`);
     if (saved) {
       return { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(saved) };
     }
@@ -51,14 +51,14 @@ export function getNotificationPrefs(userId: string): NotificationPreferences {
 export function saveNotificationPrefs(userId: string, prefs: NotificationPreferences): void {
   if (!userId) return;
   try {
-    localStorage.setItem(`${BASE_KEY_PREFS}_${userId}`, JSON.stringify(prefs));
+    sessionStorage.setItem(`${BASE_KEY_PREFS}_${userId}`, JSON.stringify(prefs));
   } catch {}
 }
 
 export function getSavedNotifications(userId: string): AppNotification[] {
   if (!userId) return [];
   try {
-    const saved = localStorage.getItem(`${BASE_KEY_NOTIFS}_${userId}`);
+    const saved = sessionStorage.getItem(`${BASE_KEY_NOTIFS}_${userId}`);
     if (saved) {
       return JSON.parse(saved) || [];
     }
@@ -79,15 +79,15 @@ export function saveNotifications(userId: string, notifs: AppNotification[]): vo
       actionView: n.actionView,
       taskId: n.taskId,
     }));
-    localStorage.setItem(`${BASE_KEY_NOTIFS}_${userId}`, JSON.stringify(sanitized));
+    sessionStorage.setItem(`${BASE_KEY_NOTIFS}_${userId}`, JSON.stringify(sanitized));
   } catch {}
 }
 
 export function clearSavedNotifications(userId: string): void {
   if (!userId) return;
   try {
-    localStorage.removeItem(`${BASE_KEY_NOTIFS}_${userId}`);
-    localStorage.removeItem(`${BASE_KEY_PREFS}_${userId}`);
+    sessionStorage.removeItem(`${BASE_KEY_NOTIFS}_${userId}`);
+    sessionStorage.removeItem(`${BASE_KEY_PREFS}_${userId}`);
   } catch {}
 }
 
