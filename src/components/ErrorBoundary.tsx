@@ -13,8 +13,8 @@ type State = {
   showLogs: boolean;
 };
 
-// Strict check for production
-const IS_PROD = import.meta.env.PROD;
+// Strict environment check for production
+const IS_PROD = Boolean(import.meta.env.PROD || import.meta.env.MODE === 'production');
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
@@ -63,7 +63,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
 
-            {/* Technical details only visible in development */}
+            {/* Technical details strictly hidden in production */}
             {!IS_PROD && this.state.error && (
               <div className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 text-left text-xs font-mono text-neutral-600 dark:text-neutral-300 overflow-x-auto max-h-24">
                 {this.state.error.message}

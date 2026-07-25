@@ -51,7 +51,7 @@ export function useSettings() {
     void id;
     void updated_at;
     
-    // Explicit user_id binding in payload
+    // Explicit user_id binding in payload and on-conflict target
     await supabase
       .from('settings')
       .upsert(

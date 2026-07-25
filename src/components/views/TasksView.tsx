@@ -25,12 +25,15 @@ export function TasksView(props: NavProps) {
   const [saving, setSaving] = useState(false);
 
   async function toggleComplete(task: Task) {
-    if (!user) return;
+    if (!user) {
+      toast('error', 'Authentication required');
+      return;
+    }
     const { error } = await supabase
       .from('tasks')
       .update({ completed: !task.completed })
       .eq('id', task.id)
-      .eq('user_id', user.id); // Verification check
+      .eq('user_id', user.id); // IDOR prevention: strict ownership filter
 
     if (error) toast('error', 'Update failed');
     else {
@@ -40,8 +43,11 @@ export function TasksView(props: NavProps) {
   }
 
   async function deleteTask(id: string) {
-    if (!user) return;
-    // Sequential deletions ensuring ownership
+    if (!user) {
+      toast('error', 'Authentication required');
+      return;
+    }
+    // Sequential user-owned deletions
     await supabase.from('study_blocks').delete().eq('task_id', id).eq('user_id', user.id);
     const { error } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', user.id);
 
@@ -54,13 +60,22 @@ export function TasksView(props: NavProps) {
   }
 
   async function saveTask(data: TaskInput, id?: string) {
-    if (!user) return;
+    if (!user) {
+      toast('error', 'Authentication required');
+      return;
+    }
     setSaving(true);
     if (id) {
-      const { error } = await supabase.from('tasks').update(data).eq('id', id).eq('user_id', user.id);
+      const { error } = await supabase
+        .from('tasks')
+        .update(data)
+        .eq('id', id)
+        .eq('user_id', user.id); // IDOR prevention: strict ownership filter
       if (error) toast('error', 'Update failed');
     } else {
-      const { error } = await supabase.from('tasks').insert({ ...data, user_id: user.id, completed: false });
+      const { error } = await supabase
+        .from('tasks')
+        .insert({ ...data, user_id: user.id, completed: false });
       if (error) toast('error', 'Add failed');
     }
     reloadTasks();

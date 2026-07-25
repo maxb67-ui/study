@@ -8,16 +8,16 @@ export type ErrorLogEntry = {
 };
 
 const ERROR_LOG_KEY = 'lumora_error_logs_v1';
-const IS_PROD = import.meta.env.PROD;
+const IS_PROD = Boolean(import.meta.env.PROD || import.meta.env.MODE === 'production');
 
 /**
  * Logs errors with aggressive PII redaction.
- * Strictly disables sessionStorage logging in production to prevent data leakage.
+ * Strictly disables persistent storage logging in production to prevent data leakage.
  */
 export function logError(error: unknown, context?: string): ErrorLogEntry {
   const rawMessage = error instanceof Error ? error.message : String(error);
   
-  // Advanced redaction patterns for PII, tokens, and sensitive academic data
+  // Advanced redaction patterns for PII, tokens, school/teacher names, and sensitive academic data
   const patterns = [
     // Emails
     { regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: '[EMAIL_REDACTED]' },
@@ -29,8 +29,9 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
     { regex: /\b(?:\d[ -]*?){13,16}\b/g, replacement: '[ID_REDACTED]' },
     // Phone Numbers
     { regex: /\b(?:\+?\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}\b/g, replacement: '[PHONE_REDACTED]' },
-    // Academic Data Redaction (GPA & Goals)
-    { regex: /"(target_gpa|targetGpa|study_goals|learning_style)":\s*("[^"]*"|\d+(\.\d+)?)/gi, replacement: '"$1":"[REDACTED]"' },
+    // Academic & Profile Data Redaction (GPA, School, Teacher, Full Name, Goals)
+    { regex: /"(target_gpa|targetGpa|study_goals|learning_style|school_name|schoolName|teacher|full_name|fullName)":\s*("[^"]*"|\d+(\.\d+)?)/gi, replacement: '"$1":"[REDACTED]"' },
+    { regex: /\b(teacher|school|instructor):\s*["']?[^"'\n\r,]+["']?/gi, replacement: '$1: [REDACTED]' },
     // Catch-all for GPA-like decimals (1.0 to 4.0) appearing in strings
     { regex: /\b([0-3]\.\d{1,2}|4\.0)\b/g, replacement: '[GPA_REDACTED]' },
   ];
@@ -50,7 +51,7 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
     context: sanitizedContext || undefined,
   };
 
-  // Only output sanitized messages to console during local development
+  // Only output sanitized messages to console and storage during local development
   if (!IS_PROD) {
     console.error(`[Lumora Debug]${sanitizedContext ? ` [${sanitizedContext}]` : ''}:`, sanitizedMessage);
     
@@ -59,7 +60,7 @@ export function logError(error: unknown, context?: string): ErrorLogEntry {
       const existing: ErrorLogEntry[] = existingRaw ? JSON.parse(existingRaw) : [];
       const updated = [entry, ...existing].slice(0, 10);
       sessionStorage.setItem(ERROR_LOG_KEY, JSON.stringify(updated));
-    } catch (e) {
+    } catch {
       // Ignore storage errors
     }
   }
