@@ -53,8 +53,10 @@ export function useSettings() {
     void updated_at;
     await supabase
       .from('settings')
-      .update(rest)
-      .eq('user_id', session.user.id);
+      .upsert(
+        { user_id: session.user.id, ...rest, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
   }, [settings, session]);
 
   return { settings, loading, update, reload: load };
