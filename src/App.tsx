@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
@@ -30,7 +32,7 @@ export type View = 'dashboard' | 'tasks' | 'calendar' | 'pomodoro' | 'notes' | '
 
 function AppContent() {
   const { user, profile, loading: authLoading } = useAuth();
-  const { settings, loading: settingsLoading, update: updateSettings } = useSettings();
+  const { settings, update: updateSettings } = useSettings();
   const toast = useToast();
   
   const [view, setView] = useState<View>('dashboard');
@@ -58,11 +60,11 @@ function AppContent() {
       { data: notesData },
       { data: coursesData }
     ] = await Promise.all([
-      supabase.from('tasks').select('*').order('due_date', { ascending: true }),
-      supabase.from('study_blocks').select('*').order('scheduled_date', { ascending: true }),
-      supabase.from('study_logs').select('*').order('date', { ascending: false }),
-      supabase.from('notes').select('*').order('updated_at', { ascending: false }),
-      supabase.from('courses').select('*').order('name', { ascending: true })
+      supabase.from('tasks').select('*').eq('user_id', user.id).order('due_date', { ascending: true }),
+      supabase.from('study_blocks').select('*').eq('user_id', user.id).order('scheduled_date', { ascending: true }),
+      supabase.from('study_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+      supabase.from('notes').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
+      supabase.from('courses').select('*').eq('user_id', user.id).order('name', { ascending: true })
     ]);
 
     if (tasksData) setTasks(tasksData);
@@ -75,19 +77,16 @@ function AppContent() {
   }, [user]);
 
   useEffect(() => {
-    if (user && profile?.onboarded) fetchData();
+    if (user && (profile?.onboarded || isDemo)) fetchData();
   }, [user, profile?.onboarded, fetchData]);
 
-  useEffect(() => {
-    if (!loading && tasks.length > 0) {
-      const notifs = scanForReminders(tasks, blocks, settings, (type, msg) => toast(type, msg));
-      setNotifications(notifs);
-    }
-  }, [loading, tasks, blocks, settings, toast]);
-
   const handleSaveNote = async (input: NoteInput, id?: string) => {
-    if (id) await supabase.from('notes').update(input).eq('id', id);
-    else await supabase.from('notes').insert({ ...input, user_id: user?.id });
+    if (!user) return;
+    if (id) {
+      await supabase.from('notes').update(input).eq('id', id).eq('user_id', user.id);
+    } else {
+      await supabase.from('notes').insert({ ...input, user_id: user.id });
+    }
     fetchData();
   };
 
@@ -105,8 +104,11 @@ function AppContent() {
     reloadNotes: fetchData,
     reloadCourses: fetchData,
     onSaveNote: handleSaveNote,
-    onDeleteNote: async (id: string) => { await supabase.from('notes').delete().eq('id', id); fetchData(); },
-    loading: loading || authLoading || settingsLoading
+    onDeleteNote: async (id: string) => { 
+      if(user) await supabase.from('notes').delete().eq('id', id).eq('user_id', user.id); 
+      fetchData(); 
+    },
+    loading: loading || authLoading
   };
 
   if (authLoading) return <SpinnerFallback message="Initializing Lumora..." />;
@@ -121,14 +123,12 @@ function AppContent() {
         notifications={notifications} setNotifications={setNotifications}
         onOpenSearch={() => setSearchOpen(true)}
       />
-      
       <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
         <MobileHeader 
           settings={settings} toggleDark={() => updateSettings({ dark_mode: !settings.dark_mode })}
           setView={setView} notifications={notifications} setNotifications={setNotifications}
           onOpenSearch={() => setSearchOpen(true)}
         />
-        
         <main className="flex-1 overflow-y-auto">
           <Suspense fallback={<ViewSkeleton />}>
             {view === 'dashboard' && <Dashboard {...navProps} />}
@@ -146,7 +146,6 @@ function AppContent() {
         <MobileNav view={view} setView={setView} />
         <PomodoroMiniWidget view={view} setView={setView} />
       </div>
-
       <GlobalSearchModal 
         isOpen={searchOpen} onClose={() => setSearchOpen(false)} setView={setView}
         tasks={tasks} notes={notes} blocks={blocks}
@@ -164,7 +163,11 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    if (user) supabase.from('tasks').select('*').then(({ data }) => { if (data) setTasks(data); });
+    if (user) {
+      supabase.from('tasks').select('*').eq('user_id', user.id).then(({ data }) => { 
+        if (data) setTasks(data); 
+      });
+    }
   }, [user]);
 
   return (
